@@ -7,7 +7,7 @@ nav:
 
 asciidoc:
   attributes:
-    lab_name: "I'm the lab_name var"
+    lab_name: "Red Hat OpenStack Services on OpenShift hands on lab"
     release-version: master
     page-pagination: true
     my_var: "foo"

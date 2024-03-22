@@ -1,0 +1,71 @@
+= Install the OpenStack Operator
+
+== Clone the files repo
+
+In the bastion terminal, clone the repo and change directory to the files that we will used later in the lab
+
+[source,bash]
+----
+git clone https://github.com/pnavarro/showroom_osp-on-ocp-lb1374.git labrepo
+cd labrepo/content/files
+----
+
+== Install the OpenStack Operators
+
+The next step in installing the *OpenStack Operators* will be to login to the cluster using the _*oc_ command and _admin_ user utilizing the provided password for your lab.
+
+#TODO export variables from lab
+
+[source,bash]
+----
+oc login -u admin -p <password>
+----
+
+Create the *openstack-operators* project for the RHOSO operators:
+
+[source,bash]
+----
+oc new-project openstack-operators
+----
+
+Create the `openstack` project for the deployed RHOSO environment:
+
+[source,bash]
+----
+oc new-project openstack
+----
+
+=== Prepare the secret for installating the operators:
+
+Login with your RedHat account and create a secret:
+
+#TODO modify with the temporary registry.redhat.io user
+[source,bash]
+----
+podman login registry.redhat.io 
+podman login registry.redhat.io --authfile auth.json
+----
+Create secret for the registry: 
+[source,bash]
+----
+oc create secret generic osp-operators-secret \ -n openstack-operators \ --from-file=.dockerconfigjson=auth.json \ --type=kubernetes.io/dockerconfigjson
+----
+
+=== Configure the **Catalog Source, OperatorGroup and Subscription** for the **OpenStack Operator** using your registry: 
+
+Create the new **CatalogSource, OperatorGroup, and Subscription** CRs in the **openstack** namespace from **files/openstack-operators.yaml**: You can cut and paste the referenced yamlfiles from the repo or you may wish to clone the repository onto the bastion which this guide will assume: 
+
+[source,bash]
+----
+oc apply -f osp-ng-openstack-operator.yaml
+----
+
+Confirm that you have installed the Openstack Operator, **openstack-operator.openstack-operators**: ``` oc get operators openstack-operator.openstack-operators ``` 
+
+Review the pods in the **openstack-operators** namespace: 
+[source,bash]
+----
+oc get pods -n openstack-operators
+----
+
+#TODO Add checking operators

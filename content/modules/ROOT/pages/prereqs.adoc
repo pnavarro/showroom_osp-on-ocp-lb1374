@@ -1,0 +1,310 @@
+= Configuration, Installation, and Using Red Hat OpenStack Services on OpenShift
+
+== Access to your lab
+
+You can ssh to your hypervisor at IP address `{bastion_public_hostname}`.  Use username {bastion_ssh_user_name} and password {bastion_ssh_password}.
+
+Once logged in the hypervisor you can access to the bastion using password *redhat*: 
+
+[source,bash]
+----
+[lab-user@hypervisor ~]$ ssh root@192.168.123.100
+----
+
+If needed you can navigate to the OpenShift console URL: {ocp_console_url} using user *admin* and password {ocp_admin_password}
+
+== Prerequisites for installation
+
+Some prerequisites needed to install Red Hat OpenStack Services on OpenShift(RHOSO) are already included in the lab environment such as:
+
+* An operational OpenShift cluster running 4.14 which supports Multus CNI
+* oc command line tool on your workstation(bastion host)
+* podman command line tool on your workstation(bastion host)
+* Access to repositories which contain the Dev Preview code
+* Access to an existing registry or create a local Quay registry
+* Example YAML files are available in this repository which can be cloned or copy and pasted for use.
+For ease of instructions it will be assumed the repo has been cloned
+
+=== Install the Prerequisite Operators
+
+There are three operators that are required to be installed before you can install the OpenStack Operator, the https://access.redhat.com/documentation/en-us/openshift_container_platform/4.13/html/networking/kubernetes-nmstate#installing-the-kubernetes-nmstate-operator-cli[NMState  Operator] the https://access.redhat.com/documentation/en-us/openshift_container_platform/4.13/html/networking/load-balancing-with-metallb#nw-metallb-installing-operator-cli_metallb-operator-install[MetalLB  Operator]  and the https://docs.openshift.com/container-platform/4.14///security/cert_manager_operator/cert-manager-operator-install.html[Cert-Manager + Operator]
+
+==== Installing the Prerequisite Operators using the CLI
+
+===== Logging in to the Cluster
+
+#TODO if we have two consoles hypervisor and bastion. We don't need to login 
+Log into the *Bastion server* using the *ssh command* provided in the lab console and the *lab-user password*.
+
+The next step in installing the Operators will be to login to the cluster using the _*oc_ command and _admin_ user utilizing the provided password for your lab.
+
+#TODO export variables from lab
+[source,bash]
+----
+oc login -u admin -p <password>
+----
+
+===== NMState Operator
+
+Create the *nmstate* Operator namespace:
+
+[source,bash]
+----
+cat << EOF | oc apply -f -
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    kubernetes.io/metadata.name: openshift-nmstate
+    name: openshift-nmstate
+  name: openshift-nmstate
+spec:
+  finalizers:
+  - kubernetes
+EOF
+----
+
+Create the *OperatorGroup*:
+
+[source,bash]
+----
+cat << EOF | oc apply -f -
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  annotations:
+    olm.providedAPIs: NMState.v1.nmstate.io
+  name: openshift-nmstate
+  namespace: openshift-nmstate
+spec:
+  targetNamespaces:
+  - openshift-nmstate
+EOF
+----
+
+Confirm the OperatorGroup is installed in the namespace:
+
+[source,bash]
+----
+oc get operatorgroup -n openshift-nmstate
+----
+
+Subscribe to the *nmstate* Operator:
+
+[source,bash]
+----
+cat << EOF| oc apply -f -
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  labels:
+    operators.coreos.com/kubernetes-nmstate-operator.openshift-nmstate: ""
+  name: kubernetes-nmstate-operator
+  namespace: openshift-nmstate
+spec:
+  channel: stable
+  installPlanApproval: Automatic
+  name: kubernetes-nmstate-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+EOF
+----
+
+Create instance of the *nmstate* operator:
+
+[source,bash]
+----
+cat << EOF | oc apply -f -
+apiVersion: nmstate.io/v1
+kind: NMState
+metadata:
+  name: nmstate
+EOF
+----
+
+Confirm that the deployment for the *nmstate* operator is running:
+
+[source,bash]
+----
+oc get clusterserviceversion -n openshift-nmstate \
+ -o custom-columns=Name:.metadata.name,Phase:.status.phase
+----
+
+===== MetalLB Operator
+
+Create the *MetalLB* Operator namespace:
+
+[source,bash]
+----
+cat << EOF | oc apply -f -
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: metallb-system
+EOF
+----
+
+Create the *OperatorGroup*:
+
+[source,bash]
+----
+cat << EOF | oc apply -f -
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: metallb-operator
+  namespace: metallb-system
+EOF
+----
+
+Confirm the OperatorGroup is installed in the namespace:
+
+[source,bash]
+----
+oc get operatorgroup -n metallb-system
+----
+
+Subscribe to the *metallb* Operator:
+
+[source,bash]
+----
+cat << EOF| oc apply -f -
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: metallb-operator-sub
+  namespace: metallb-system
+spec:
+  channel: stable
+  name: metallb-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+EOF
+----
+
+Confirm the *metallb* installplan is in the namespace:
+
+[source,bash]
+----
+oc get installplan -n metallb-system
+----
+
+Confirm the *metallb* operator is installed:
+
+[source,bash]
+----
+oc get clusterserviceversion -n metallb-system \
+ -o custom-columns=Name:.metadata.name,Phase:.status.phase
+----
+
+Create a single instance of a *metallb* resource:
+
+[source,bash]
+----
+cat << EOF | oc apply -f -
+apiVersion: metallb.io/v1beta1
+kind: MetalLB
+metadata:
+  name: metallb
+  namespace: metallb-system
+EOF
+----
+
+Verify that the deployment for the controller is running:
+
+[source,bash]
+----
+oc get deployment -n metallb-system controller
+----
+
+Verify that the daemon set for the speaker is running:
+
+[source,bash]
+----
+oc get daemonset -n metallb-system speaker
+----
+
+===== Cert-Manager Operator
+
+Create the *cert-manager-operator* Operator namespace:
+
+[source,bash]
+----
+cat << EOF | oc apply -f -
+apiVersion: v1
+kind: Namespace
+metadata:
+    name: cert-manager-operator
+    labels:
+      pod-security.kubernetes.io/enforce: privileged
+      security.openshift.io/scc.podSecurityLabelSync: "false"
+EOF
+----
+
+Create the *OperatorGroup*:
+
+[source,bash]
+----
+cat << EOF | oc apply -f -
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: cert-manager-operator
+  namespace: cert-manager-operator
+spec:
+  targetNamespaces:
+  - cert-manager-operator
+  upgradeStrategy: Default
+EOF
+----
+
+Confirm the OperatorGroup is installed in the namespace:
+
+[source,bash]
+----
+oc get operatorgroup -n cert-manager-operator
+----
+
+Subscribe to the *cert-manager* Operator:
+
+[source,bash]
+----
+cat << EOF | oc apply -f -
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  labels:
+    operators.coreos.com/openshift-cert-manager-operator.cert-manager-operator: ""
+  name: openshift-cert-manager-operator
+  namespace: cert-manager-operator
+spec:
+  channel: stable-v1.12
+  installPlanApproval: Automatic
+  name: openshift-cert-manager-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  startingCSV: cert-manager-operator.v1.12.1
+EOF
+----
+
+Confirm the *cert-manager* installplan is in the namespace:
+
+[source,bash]
+----
+oc get installplan -n cert-manager-operator
+----
+
+Confirm the *cert-manager* operator is installed:
+
+[source,bash]
+----
+oc get clusterserviceversion -n cert-manager-operator \
+ -o custom-columns=Name:.metadata.name,Phase:.status.phase
+----
+
+Verify that cert-manager pods are up and running by entering the following command:
+
+[source,bash]
+----
+oc get pods -n cert-manager
+----
