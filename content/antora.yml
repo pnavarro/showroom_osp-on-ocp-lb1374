@@ -1,6 +1,6 @@
 ---
 name: modules
-title: Sample Module Title
+title: Red Hat OpenStack Services on OpenShift Hands on Lab
 version: master
 nav:
   - modules/ROOT/nav.adoc
