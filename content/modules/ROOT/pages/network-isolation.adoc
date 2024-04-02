@@ -7,7 +7,7 @@ If not already in the *files directory*:
 
 [source,bash]
 ----
-cp cd labrepo/content/files
+cd ~/labrepo/content/files
 ----
 
 The preconfigured yamls will be applied indivdually:
