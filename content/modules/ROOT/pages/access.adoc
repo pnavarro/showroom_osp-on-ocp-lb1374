@@ -83,11 +83,13 @@ From the bastion access to the VM:
 ssh cirros@<FLOATING_IP> (password is gocubsgo)
 ----
 
-*Optional: Enable Horizon*
+== Optional: Enable Horizon
+
+From the Bastion, do run:
 
 [source,bash]
 ----
 oc patch openstackcontrolplanes/openstack-galera-network-isolation -p='[{"op": "replace", "path": "/spec/horizon/enabled", "value": true}]' --type json
 ----
 
-Then connect to Horizon at https://horizon-openstack.apps.UUID.dynamic.redhatworkshops.io/ with user "admin".
+Then connect to Horizon at https://horizon-openstack.apps.{rest-of-your-url}/ with user "admin".
