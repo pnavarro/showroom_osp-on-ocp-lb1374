@@ -9,7 +9,7 @@ ssh root@172.22.0.100
 setenforce 0
 ----
 
-From the *bastion server* access the Control Plane
+From the *bastion server* access the Control Plane:
 
 [source,bash]
 ----
@@ -23,7 +23,7 @@ On Control Plane verify OpenStack:
 cd /home/cloud-admin
 openstack compute service list
 openstack network agent list
-logout
+exit
 ----
 
 Map the Compute nodes to the Compute cell that they are connected to:
@@ -82,3 +82,12 @@ From the bastion access to the VM:
 ----
 ssh cirros@<FLOATING_IP> (password is gocubsgo)
 ----
+
+*Optional: Enable Horizon*
+
+[source,bash]
+----
+oc patch openstackcontrolplanes/openstack-galera-network-isolation -p='[{"op": "replace", "path": "/spec/horizon/enabled", "value": true}]' --type json
+----
+
+Then connect to Horizon at https://horizon-openstack.apps.UUID.dynamic.redhatworkshops.io/ with user "admin".
