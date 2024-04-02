@@ -48,7 +48,10 @@ podman login registry.redhat.io --authfile auth.json
 Create secret for the registry: 
 [source,bash]
 ----
-oc create secret generic osp-operators-secret \ -n openstack-operators \ --from-file=.dockerconfigjson=auth.json \ --type=kubernetes.io/dockerconfigjson
+oc create secret generic osp-operators-secret \
+ -n openstack-operators \
+ --from-file=.dockerconfigjson=auth.json \
+ --type=kubernetes.io/dockerconfigjson
 ----
 
 === Configure the **Catalog Source, OperatorGroup and Subscription** for the **OpenStack Operator** using your registry: 
@@ -69,3 +72,28 @@ oc get pods -n openstack-operators
 ----
 
 #TODO Add checking operators
+
+If you run:
+[source, bash]
+----
+oc get pods -n openstack-operators --sort-by=.metadata.creationTimestamp
+----
+
+You should see a list of completed pods and then the running openstack services pods. It should looks like:
+[source, bash]
+----
+(...)
+4125610f4af9dfe5c6e5c6f7eee599a6b7a7211154c9c2a29bb1290239gq966   0/1     Completed   0          7m49s
+c0899d48e01d3359dbcab05499bcee071d413f937e1f712d949751a098f844r   0/1     Completed   0          7m48s
+2ce988007db74ed96e2b4f6223d3c76d9a6e177368efdc7c468b73a0bc4fk47   0/1     Completed   0          7m48s
+neutron-operator-controller-manager-5755996c4b-ctbf8              2/2     Running     0          7m19s
+openstack-ansibleee-operator-controller-manager-6d7d77fc45pdtfj   2/2     Running     0          7m13s
+openstack-operator-controller-manager-56fb74ccb7-r8lvn            2/2     Running     0          7m1s
+dataplane-operator-controller-manager-6844bfd645-f2zvs            2/2     Running     0          7m1s
+glance-operator-controller-manager-596b56cd5-rvfrm                2/2     Running     0          6m59s
+swift-operator-controller-manager-df5fbbbc5-zscc5                 2/2     Running     0          6m49s
+octavia-operator-controller-manager-6549bc8f-r6xbp                2/2     Running     0          6m42s
+openstack-baremetal-operator-controller-manager-7cd655c4c7f5glm   2/2     Running     0          6m42s
+barbican-operator-controller-manager-69b766c996-ldg4n             2/2     Running     0          6m28s
+(...)
+----
