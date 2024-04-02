@@ -18,8 +18,8 @@ If needed you can navigate to the OpenShift console URL: {ocp_console_url} using
 Some prerequisites needed to install Red Hat OpenStack Services on OpenShift(RHOSO) are already included in the lab environment such as:
 
 * An operational OpenShift cluster running 4.14 which supports Multus CNI
-* oc command line tool on your workstation(bastion host)
-* podman command line tool on your workstation(bastion host)
+* oc command line tool on your workstation (bastion host)
+* podman command line tool on your workstation (bastion host)
 * Access to repositories which contain the Dev Preview code
 * Access to an existing registry or create a local Quay registry
 * Example YAML files are available in this repository which can be cloned or copy and pasted for use.
