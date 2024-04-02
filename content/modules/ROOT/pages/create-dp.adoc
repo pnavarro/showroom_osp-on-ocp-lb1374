@@ -6,7 +6,7 @@ If needed cd to files:
 
 [source,bash]
 ----
-cd cd labrepo/content/files
+cd ~/labrepo/content/files
 ----
 
 Apply the *network confguration*:
@@ -141,6 +141,12 @@ scp /root/.ssh/id_rsa.pub root@192.168.123.100:/root/.ssh/id_rsa_compute.pub
 == Create a secret for the dataplane
 
 Back on the *bastion* server:
+
+[source,bash]
+----
+cd ~/labrepo/content/files
+----
+
 +
 [source,bash]
 ----
