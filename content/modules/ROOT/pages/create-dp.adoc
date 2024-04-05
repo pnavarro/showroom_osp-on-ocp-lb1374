@@ -165,3 +165,22 @@ oc apply -f osp-ng-dataplane-node-set-deploy.yaml
 oc apply -f osp-ng-dataplane-deployment.yaml
 ----
 
+You can view the Ansible logs while the deployment executes:
+[source,bash]
+----
+oc get pod -l app=openstackansibleee -w
+oc logs -l app=openstackansibleee -f --max-log-requests 10
+----
+
+Verify that the data plane is deployed:
+[source,bash]
+----
+$ oc get openstackdataplanedeployment
+NAME             	STATUS   MESSAGE
+openstack-edpm-ipam   True     Setup Complete
+
+
+$ oc get openstackdataplanenodeset
+NAME             	STATUS   MESSAGE
+openstack-edpm-ipam   True     NodeSet Ready
+----
