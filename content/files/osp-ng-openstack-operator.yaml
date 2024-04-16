@@ -11,8 +11,7 @@ spec:
   gprcPodConfig:
     securityContextConfig: legacy
   # adjust the repolink below to match your environment:
-  #TODO change with the temporary public quay
-  image: quay.apps.uuid.dynamic.redhatworkshops.io/quay_user/dp3-openstack-operator-index:latest
+  image: quay.io/redhat_emp1/osp-on-ocp-lb1374-dp3-index:latest
 ---
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup

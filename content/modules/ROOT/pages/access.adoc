@@ -92,4 +92,4 @@ From the Bastion, do run:
 oc patch openstackcontrolplanes/openstack-galera-network-isolation -p='[{"op": "replace", "path": "/spec/horizon/enabled", "value": true}]' --type json
 ----
 
-Then connect to Horizon at https://horizon-openstack.apps.{rest-of-your-url}/ with user "admin".
+Then connect to Horizon at "https://horizon-openstack.apps.{rest-of-your-url}/" with user "admin".

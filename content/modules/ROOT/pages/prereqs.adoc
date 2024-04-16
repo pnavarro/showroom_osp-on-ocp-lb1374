@@ -33,15 +33,26 @@ There are three operators that are required to be installed before you can insta
 
 ===== Logging in to the Cluster
 
-#TODO if we have two consoles hypervisor and bastion. We don't need to login 
-Log into the *Bastion server* using the *ssh command* provided in the lab console and the *lab-user password*.
+Log in the bastion
 
-The next step in installing the Operators will be to login to the cluster using the _*oc_ command and _admin_ user utilizing the provided password for your lab.
-
-#TODO export variables from lab
 [source,bash]
 ----
-oc login -u admin -p <password>
+[lab-user@hypervisor ~]$ ssh root@192.168.123.100
+[[root@ocp4-bastion ~]]
+----
+
+Make sure you can reach out to the OpenShift cluster, for instance, by listing the nodes in your cluster: 
+
+[source,bash]
+----
+[root@ocp4-bastion ~]# oc get nodes
+NAME                           STATUS   ROLES                  AGE   VERSION
+ocp4-master1.aio.example.com   Ready    control-plane,master   26h   v1.25.16+9946c63
+ocp4-master2.aio.example.com   Ready    control-plane,master   26h   v1.25.16+9946c63
+ocp4-master3.aio.example.com   Ready    control-plane,master   26h   v1.25.16+9946c63
+ocp4-worker1.aio.example.com   Ready    worker                 25h   v1.25.16+9946c63
+ocp4-worker2.aio.example.com   Ready    worker                 25h   v1.25.16+9946c63
+ocp4-worker3.aio.example.com   Ready    worker                 25h   v1.25.16+9946c63
 ----
 
 ===== NMState Operator
