@@ -1,10 +1,10 @@
 = Install the OpenStack Operator
 
-== Clone the files repo
+== Clone the Files Repo
 
 In the bastion terminal, clone the repo and change directory to the files that we will used later in the lab
 
-[source,bash]
+[source,bash,role=execute]
 ----
 git clone https://github.com/pnavarro/showroom_osp-on-ocp-lb1374.git labrepo
 cd labrepo/content/files
@@ -14,28 +14,28 @@ cd labrepo/content/files
 
 The next step in installing the *OpenStack Operators* will be create the *openstack-operators* project for the RHOSO operators:
 
-[source,bash]
+[source,bash,role=execute]
 ----
 oc new-project openstack-operators
 ----
 
 Create the `openstack` project for the deployed RHOSO environment:
 
-[source,bash]
+[source,bash,role=execute]
 ----
 oc new-project openstack
 ----
 
 === Prepare the secret for installating the operators:
 
-Login with your RedHat account and create a secret:
+Login with your Red Hat account and create a secret:
 
-[source,bash]
+[source,bash,role=execute]
 ----
 podman login --username "6340056|osp-on-ocp-lb1374" --password "eyJhbGciOiJSUzUxMiJ9.eyJzdWIiOiI1Y2EzM2NjNGY4NWM0MmZmYTI3YmU5Y2UyMWI3M2JjMCJ9.GAxgg6Ht2oCS8zxHdwQw9kSD6RHeQOWYaDOcnQB5RElewQKvZmcNWi-YJdInJ5iXTE9r9tGVIN7fhFJL7f-hhL1PK2RVzZHD8qyfkMWcCEF5GUvp8rDX4GDrSkqjpUD44teWYkOy9Nb-3pOGzRIC7qs88uSxMz7hfil4I_HmjF4AAPIi4j3QZhp0lqrXzzf7vt6NLlizDFa2XTcPf_vQqReFu3A_5iWfy8XmLlC7QIixeVv2IE-ahRqM_UDCf5Dg3n2WpYvmP5jcSPFOLoT7sMimyeaPBna793boiX2swmeGHQ23tx1nFavCUavGv_cDRAvzVXCJ2NROTJ5unHiN7CXEbzm4Rg-65tY4D0YynTU8L6t0gYtXYYY9_wi1xNs-cShAmCMh1ySJn9nBcq4ydvH7eQnhSEvoK0bPsN_vWJCgOQBQyOdpTfRMU6piAy9H1zJ0KzsSzuKSS8fX0m9oN7narZPl34DTiEUTDeW8_SS6vJjHr_Q9O_X4mVeeQhH2ocN_4M9R6A89tmQ2jObuWm-cu1Yk-G6FSPUONhsoC_99nQnICS4mAuCWWDHxFY61hIrreVZBSH053MgfSaG2sqTb26MkxKWx-TP1sx18pb1xmo4IQEwILIbLlSPA3vafbrbQO5RQcm3UYKtYwev0vAlL5taXiTuLEyPscdzv0Sc" registry.redhat.io --authfile auth.json
 ----
-Create secret for the registry: 
-[source,bash]
+Create secret for the registry:
+[source,bash,role=execute]
 ----
 oc create secret generic osp-operators-secret \
  -n openstack-operators \
@@ -43,36 +43,37 @@ oc create secret generic osp-operators-secret \
  --type=kubernetes.io/dockerconfigjson
 ----
 
-=== Configure the **Catalog Source, OperatorGroup and Subscription** for the **OpenStack Operator** using your registry: 
+=== Configure the **Catalog Source, OperatorGroup and Subscription** for the **OpenStack Operator** using your registry:
 
-Create the new **CatalogSource, OperatorGroup, and Subscription** CRs in the **openstack** namespace from **files/openstack-operators.yaml**: You can cut and paste the referenced yamlfiles from the repo or you may wish to clone the repository onto the bastion which this guide will assume: 
+Create the new **CatalogSource, OperatorGroup, and Subscription** CRs in the **openstack** namespace from **files/openstack-operators.yaml**: You can cut and paste the referenced yamlfiles from the repo or you may wish to clone the repository onto the bastion which this guide will assume:
 
-[source,bash]
+[source,bash,role=execute]
 ----
 oc apply -f osp-ng-openstack-operator.yaml
 ----
 
-Confirm that you have installed the Openstack Operator, **openstack-operator.openstack-operators**: 
+Confirm that you have installed the Openstack Operator, *openstack-operator.openstack-operators*:
 
-[source,bash]
----- 
+[source,bash,role=execute]
+----
 oc get operators openstack-operator.openstack-operators
 ----
 
-Review the pods in the **openstack-operators** namespace: 
-[source,bash]
+Review the pods in the **openstack-operators** namespace:
+[source,bash,role=execute]
 ----
 oc get pods -n openstack-operators
 ----
 
 If you run:
-[source, bash]
+[source, bash,role=execute]
 ----
 oc get pods -n openstack-operators --sort-by=.metadata.creationTimestamp
 ----
 
 You should see a list of completed pods and then the running openstack services pods. It should looks like:
-[source, bash]
+
+.Sample Output
 ----
 (...)
 4125610f4af9dfe5c6e5c6f7eee599a6b7a7211154c9c2a29bb1290239gq966   0/1     Completed   0          7m49s

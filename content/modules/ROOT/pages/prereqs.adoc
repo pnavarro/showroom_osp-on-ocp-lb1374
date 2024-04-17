@@ -1,24 +1,25 @@
-= Configuration, Installation, and Using Red Hat OpenStack Services on OpenShift
+= Configuration, Installation, and Use of Red Hat OpenStack Services on OpenShift
 
-== Access to your lab
+== Access Your Lab
 
-You can ssh to your hypervisor at IP address `{bastion_public_hostname}`.  Use username {bastion_ssh_user_name} and password {bastion_ssh_password}.
+You can ssh to your hypervisor at IP address {bastion_public_hostname}.  Use username {bastion_ssh_user_name} and password {bastion_ssh_password}.
 
-Once logged in the hypervisor you can access to the bastion using password *redhat*: 
+Once logged in the hypervisor you can access to the bastion using password *redhat*:
 
-[source,bash]
+[source,bash,role=execute]
 ----
-[lab-user@hypervisor ~]$ ssh root@192.168.123.100
+ssh root@192.168.123.100
 ----
 
-If needed you can navigate to the OpenShift console URL: {ocp_console_url} using user *admin* and password {ocp_admin_password}
+If needed, you can navigate to the OpenShift console URL: {ocp_console_url} using user *admin* and password {ocp_admin_password}
 
-== Prerequisites for installation
+== Prerequisites for Installation
 
 Some prerequisites needed to install Red Hat OpenStack Services on OpenShift(RHOSO) are already included in the lab environment such as:
 
 * An operational OpenShift cluster running 4.14 which supports Multus CNI
 * oc command line tool on your workstation (bastion host)
+* k9s command line tool on your workstation (bastion host)
 * podman command line tool on your workstation (bastion host)
 * Access to repositories which contain the Dev Preview code
 * Access to an existing registry or create a local Quay registry
@@ -29,23 +30,27 @@ For ease of instructions it will be assumed the repo has been cloned
 
 There are three operators that are required to be installed before you can install the OpenStack Operator, the https://access.redhat.com/documentation/en-us/openshift_container_platform/4.13/html/networking/kubernetes-nmstate#installing-the-kubernetes-nmstate-operator-cli[NMState  Operator] the https://access.redhat.com/documentation/en-us/openshift_container_platform/4.13/html/networking/load-balancing-with-metallb#nw-metallb-installing-operator-cli_metallb-operator-install[MetalLB  Operator]  and the https://docs.openshift.com/container-platform/4.14///security/cert_manager_operator/cert-manager-operator-install.html[Cert-Manager + Operator]
 
-==== Installing the Prerequisite Operators using the CLI
+=== Installing the Prerequisite Operators using the CLI
 
-===== Logging in to the Cluster
+==== Logging in to the Cluster
 
 Log in the bastion
 
-[source,bash]
+[source,bash,role=execute]
 ----
 [lab-user@hypervisor ~]$ ssh root@192.168.123.100
 [[root@ocp4-bastion ~]]
 ----
 
-Make sure you can reach out to the OpenShift cluster, for instance, by listing the nodes in your cluster: 
+Make sure you can reach out to the OpenShift cluster, for instance, by listing the nodes in your cluster:
 
-[source,bash]
+[source,bash,role=execute]
 ----
-[root@ocp4-bastion ~]# oc get nodes
+oc get nodes
+----
+
+.Sample Output
+----
 NAME                           STATUS   ROLES                  AGE   VERSION
 ocp4-master1.aio.example.com   Ready    control-plane,master   26h   v1.25.16+9946c63
 ocp4-master2.aio.example.com   Ready    control-plane,master   26h   v1.25.16+9946c63
@@ -55,11 +60,11 @@ ocp4-worker2.aio.example.com   Ready    worker                 25h   v1.25.16+99
 ocp4-worker3.aio.example.com   Ready    worker                 25h   v1.25.16+9946c63
 ----
 
-===== NMState Operator
+==== NMState Operator
 
 Create the *nmstate* Operator namespace:
 
-[source,bash]
+[source,bash,role=execute]
 ----
 cat << EOF | oc apply -f -
 apiVersion: v1
@@ -77,7 +82,7 @@ EOF
 
 Create the *OperatorGroup*:
 
-[source,bash]
+[source,bash,role=execute]
 ----
 cat << EOF | oc apply -f -
 apiVersion: operators.coreos.com/v1
@@ -95,14 +100,14 @@ EOF
 
 Confirm the OperatorGroup is installed in the namespace:
 
-[source,bash]
+[source,bash,role=execute]
 ----
 oc get operatorgroup -n openshift-nmstate
 ----
 
 Subscribe to the *nmstate* Operator:
 
-[source,bash]
+[source,bash,role=execute]
 ----
 cat << EOF| oc apply -f -
 apiVersion: operators.coreos.com/v1alpha1
@@ -123,14 +128,14 @@ EOF
 
 Confirm that NMstate operator is running
 
-[source,bash]
+[source,bash,role=execute]
 ----
 oc get clusterserviceversion -n openshift-nmstate  -o custom-columns=Name:.metadata.name,Phase:.status.phase
 ----
 
 Create instance of the *nmstate* operator:
 
-[source,bash]
+[source,bash,role=execute]
 ----
 cat << EOF | oc apply -f -
 apiVersion: nmstate.io/v1
@@ -142,17 +147,17 @@ EOF
 
 Confirm that the deployment for the *nmstate* operator is running:
 
-[source,bash]
+[source,bash,role=execute]
 ----
 oc get clusterserviceversion -n openshift-nmstate \
  -o custom-columns=Name:.metadata.name,Phase:.status.phase
 ----
 
-===== MetalLB Operator
+==== MetalLB Operator
 
 Create the *MetalLB* Operator namespace:
 
-[source,bash]
+[source,bash,role=execute]
 ----
 cat << EOF | oc apply -f -
 apiVersion: v1
@@ -164,7 +169,7 @@ EOF
 
 Create the *OperatorGroup*:
 
-[source,bash]
+[source,bash,role=execute]
 ----
 cat << EOF | oc apply -f -
 apiVersion: operators.coreos.com/v1
@@ -177,14 +182,14 @@ EOF
 
 Confirm the OperatorGroup is installed in the namespace:
 
-[source,bash]
+[source,bash,role=execute]
 ----
 oc get operatorgroup -n metallb-system
 ----
 
 Subscribe to the *metallb* Operator:
 
-[source,bash]
+[source,bash,role=execute]
 ----
 cat << EOF| oc apply -f -
 apiVersion: operators.coreos.com/v1alpha1
@@ -202,22 +207,24 @@ EOF
 
 Confirm the *metallb* installplan is in the namespace:
 
-[source,bash]
+[source,bash,role=execute]
 ----
 oc get installplan -n metallb-system
 ----
 
 Confirm the *metallb* operator is installed:
 
-[source,bash]
+[source,bash,role=execute]
 ----
 oc get clusterserviceversion -n metallb-system \
  -o custom-columns=Name:.metadata.name,Phase:.status.phase
 ----
 
+Wait until the Phase is Succeeded.
+
 Create a single instance of a *metallb* resource:
 
-[source,bash]
+[source,bash,role=execute]
 ----
 cat << EOF | oc apply -f -
 apiVersion: metallb.io/v1beta1
@@ -230,23 +237,23 @@ EOF
 
 Verify that the deployment for the controller is running:
 
-[source,bash]
+[source,bash,role=execute]
 ----
 oc get deployment -n metallb-system controller
 ----
 
 Verify that the daemon set for the speaker is running:
 
-[source,bash]
+[source,bash,role=execute]
 ----
 oc get daemonset -n metallb-system speaker
 ----
 
-===== Cert-Manager Operator
+==== Cert-Manager Operator
 
 Create the *cert-manager-operator* Operator namespace:
 
-[source,bash]
+[source,bash,role=execute]
 ----
 cat << EOF | oc apply -f -
 apiVersion: v1
@@ -261,7 +268,7 @@ EOF
 
 Create the *OperatorGroup*:
 
-[source,bash]
+[source,bash,role=execute]
 ----
 cat << EOF | oc apply -f -
 apiVersion: operators.coreos.com/v1
@@ -278,14 +285,14 @@ EOF
 
 Confirm the OperatorGroup is installed in the namespace:
 
-[source,bash]
+[source,bash,role=execute]
 ----
 oc get operatorgroup -n cert-manager-operator
 ----
 
 Subscribe to the *cert-manager* Operator:
 
-[source,bash]
+[source,bash,role=execute]
 ----
 cat << EOF | oc apply -f -
 apiVersion: operators.coreos.com/v1alpha1
@@ -307,14 +314,14 @@ EOF
 
 Confirm the *cert-manager* installplan is in the namespace:
 
-[source,bash]
+[source,bash,role=execute]
 ----
 oc get installplan -n cert-manager-operator
 ----
 
 Confirm the *cert-manager* operator is installed:
 
-[source,bash]
+[source,bash,role=execute]
 ----
 oc get clusterserviceversion -n cert-manager-operator \
  -o custom-columns=Name:.metadata.name,Phase:.status.phase
@@ -322,7 +329,7 @@ oc get clusterserviceversion -n cert-manager-operator \
 
 Verify that cert-manager pods are up and running by entering the following command:
 
-[source,bash]
+[source,bash,role=execute]
 ----
 oc get pods -n cert-manager
 ----
