@@ -6,7 +6,7 @@ You can ssh to your hypervisor at IP address {bastion_public_hostname}.  Use use
 
 Once logged in the hypervisor you can access to the bastion using password *redhat*:
 
-[source,bash,role=execute]
+[source,bash]
 ----
 ssh root@192.168.123.100
 ----

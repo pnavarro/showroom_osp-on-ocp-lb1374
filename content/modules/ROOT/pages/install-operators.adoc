@@ -71,7 +71,8 @@ If you run:
 oc get pods -n openstack-operators --sort-by=.metadata.creationTimestamp
 ----
 
-You should see a list of completed pods and then the running openstack services pods. It should looks like:
+You should see a list of completed pods and then the running openstack services pods.
+It should look like:
 
 .Sample Output
 ----
