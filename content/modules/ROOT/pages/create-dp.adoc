@@ -81,8 +81,8 @@ Every 2.0s: virsh domifaddr osp-compute0 --source agent                         
 ----
 virsh domifaddr osp-compute0 --source agent
 ----
-ssh to the IP assigned
 
+Use the IP assigned to `eth1` above in the next step.
 
 === Configure Ethernet Devices on New Compute
 
@@ -171,6 +171,9 @@ scp /root/.ssh/id_rsa root@192.168.123.100:/root/.ssh/id_rsa_compute
 scp /root/.ssh/id_rsa.pub root@192.168.123.100:/root/.ssh/id_rsa_compute.pub
 ----
 
+WARNING: This might error initially because of unknown hosts file.
+Retry to make sure both files are copied.
+
 === Finish the Dataplane
 
 Connect to the *bastion* server (Remember that bastion password is *redhat*):
@@ -218,6 +221,7 @@ oc logs -l app=openstackansibleee -f --max-log-requests 10
 
 .Sample Output
 ----
+(...)
 PLAY RECAP *********************************************************************
 edpm-compute-0             : ok=53   changed=26   unreachable=0    failed=0    skipped=54   rescued=0    ignored=0
 ----

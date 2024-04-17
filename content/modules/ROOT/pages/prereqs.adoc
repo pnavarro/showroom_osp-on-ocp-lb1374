@@ -30,9 +30,7 @@ For ease of instructions it will be assumed the repo has been cloned
 
 There are three operators that are required to be installed before you can install the OpenStack Operator, the https://access.redhat.com/documentation/en-us/openshift_container_platform/4.13/html/networking/kubernetes-nmstate#installing-the-kubernetes-nmstate-operator-cli[NMState  Operator] the https://access.redhat.com/documentation/en-us/openshift_container_platform/4.13/html/networking/load-balancing-with-metallb#nw-metallb-installing-operator-cli_metallb-operator-install[MetalLB  Operator]  and the https://docs.openshift.com/container-platform/4.14///security/cert_manager_operator/cert-manager-operator-install.html[Cert-Manager + Operator]
 
-=== Installing the Prerequisite Operators using the CLI
-
-==== Logging in to the Cluster
+==== Accessing the Cluster
 
 From the hypervisor, log in to the bastion
 
