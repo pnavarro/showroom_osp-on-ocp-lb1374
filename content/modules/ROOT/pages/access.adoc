@@ -19,7 +19,7 @@ ssh root@192.168.123.100
 oc rsh -n openstack openstackclient
 ----
 
-On Control Plane verify OpenStack:
+On Control Plane verify OpenStack Services:
 
 [source,bash,role=execute]
 ----
@@ -37,6 +37,8 @@ openstack compute service list
 | 3abb8a21-1b8d-48f2-adfc-663d52344229 | nova-scheduler | nova-scheduler-0       | internal | enabled | up    | 2024-04-17T18:58:10.000000 |
 +--------------------------------------+----------------+------------------------+----------+---------+-------+----------------------------+
 ----
+
+Verify OpenStack networks:
 
 [source,bash,role=execute]
 ----
@@ -79,6 +81,8 @@ curl -O -L https://github.com/cirros-dev/cirros/releases/download/0.6.2/cirros-0
 openstack image create cirros --container-format bare --disk-format qcow2 --public --file cirros-0.6.2-x86_64-disk.img
 ----
 
+Create Network and Security for the VM
+
 [source,bash,role=execute]
 ----
 ssh-keygen -m PEM -t rsa -b 2048 -f ~/.ssh/id_rsa_pem
@@ -103,6 +107,8 @@ openstack router set vrouter --external-gateway public
 openstack router add subnet vrouter private-net
 ----
 
+Create the Server and a Floating IP
+
 [source,bash,role=execute]
 ----
 openstack server create \
@@ -111,13 +117,15 @@ openstack server create \
 openstack floating ip create public
 ----
 
+Add the floating IP above to the new VM in the next step.
+
 [source,bash,role=execute]
 ----
 openstack server add floating ip test-server <FLOATING_IP>
 exit
 ----
 
-From the bastion access to the VM:
+From the bastion access to the VM.
 
 [source,bash,role=execute]
 ----
