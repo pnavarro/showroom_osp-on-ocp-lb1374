@@ -48,7 +48,7 @@ Make sure you can reach out to the OpenShift cluster, for instance, by listing t
 ----
 oc get nodes
 ----
-+
+
 .Sample Output
 ----
 NAME                           STATUS   ROLES                  AGE   VERSION
@@ -219,8 +219,8 @@ Confirm the *metallb* operator is installed:
 oc get clusterserviceversion -n metallb-system \
  -o custom-columns=Name:.metadata.name,Phase:.status.phase
 ----
-+
-Wait until the Phase is Succeeded
+
+Wait until the Phase is Succeeded.
 
 Create a single instance of a *metallb* resource:
 
