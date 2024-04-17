@@ -10,7 +10,7 @@ In this lab, you will use the following infrastructure:
 
 In this lab, you will cover the following topics:
 
-* xref:prereqs.adoc[_Perform Pre-requisites_]
+* xref:prereqs.adoc[_Perform Prerequisite Operations]
 * xref:install-operators.adoc[_Install the Red Hat OpenStack Platform Service Operators_]
 * xref:secure.adoc[_Configure Secure Access for OpenStack Services_]
 * xref:network-isolation.adoc[_Prepare OCP for OpenStack Network Isolation_]

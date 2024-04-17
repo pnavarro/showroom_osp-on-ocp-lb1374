@@ -1,4 +1,4 @@
-* xref:prereqs.adoc[Perform Pre-requisites]
+* xref:prereqs.adoc[Perform Prerequisite Operations]
 * xref:install-operators.adoc[Install the Red Hat OpenStack Platform service Operators]
 * xref:secure.adoc[Configure secure access for OpenStack services]
 * xref:network-isolation.adoc[Prepare OCP for OpenStack network isolation]
