@@ -1,4 +1,4 @@
-= Access the OpenStack
+= Access OpenStack
 
 From the *hypervisor server* access the compute node and disable selinux.
 Note that this is a temporary workaround as we are using OSP 17.1 packages.
