@@ -3,40 +3,69 @@
 From the *hypervisor server* access the compute node and disable selinux.
 Note that this is a temporary workaround as we are using OSP 17.1 packages.
 
-[source,bash]
+[source,bash,role=execute]
 ----
 sudo -i
 ssh root@172.22.0.100
 setenforce 0
+exit
 ----
 
 From the *bastion server* access the Control Plane:
 
-[source,bash]
+[source,bash,role=execute]
 ----
+ssh root@192.168.123.100
 oc rsh -n openstack openstackclient
 ----
 
 On Control Plane verify OpenStack:
 
-[source,bash]
+[source,bash,role=execute]
 ----
 cd /home/cloud-admin
 openstack compute service list
+----
+
+.Sample Output
+----
++--------------------------------------+----------------+------------------------+----------+---------+-------+----------------------------+
+| ID                                   | Binary         | Host                   | Zone     | Status  | State | Updated At                 |
++--------------------------------------+----------------+------------------------+----------+---------+-------+----------------------------+
+| 9d95d098-7666-4be8-8c70-230f474b625b | nova-conductor | nova-cell1-conductor-0 | internal | enabled | up    | 2024-04-17T18:58:07.000000 |
+| d283fd97-657c-422f-9572-be71c6a5b804 | nova-conductor | nova-cell0-conductor-0 | internal | enabled | up    | 2024-04-17T18:58:05.000000 |
+| 3abb8a21-1b8d-48f2-adfc-663d52344229 | nova-scheduler | nova-scheduler-0       | internal | enabled | up    | 2024-04-17T18:58:10.000000 |
++--------------------------------------+----------------+------------------------+----------+---------+-------+----------------------------+
+----
+
+[source,bash,role=execute]
+----
 openstack network agent list
 exit
 ----
 
+.Sample Output
+----
++--------------------------------------+------------------------------+--------------------------------+-------------------+-------+-------+----------------+
+| ID                                   | Agent Type                   | Host                           | Availability Zone | Alive | State | Binary         |
++--------------------------------------+------------------------------+--------------------------------+-------------------+-------+-------+----------------+
+| 7a0966e9-e6ef-49f3-ba9e-e16d2c96f0b3 | OVN Controller Gateway agent | ocp4-worker3.aio.example.com   |                   | :-)   | UP    | ovn-controller |
+| 696925cf-518f-410c-bb0d-cd1cdc753393 | OVN Controller Gateway agent | ocp4-worker1.aio.example.com   |                   | :-)   | UP    | ovn-controller |
+| 881583db-0ef8-425f-afe8-d2eaef68bc32 | OVN Controller Gateway agent | ocp4-worker2.aio.example.com   |                   | :-)   | UP    | ovn-controller |
+| 0cc63eb1-f7c9-482d-8a1f-80e9bcbc62e5 | OVN Controller agent         | edpm-compute-0.aio.example.com |                   | :-)   | UP    | ovn-controller |
++--------------------------------------+------------------------------+--------------------------------+-------------------+-------+-------+----------------+
+----
+
 Map the Compute nodes to the Compute cell that they are connected to:
-+
-[source,bash]
+
+[source,bash,role=execute]
 ----
 oc rsh nova-cell0-conductor-0 nova-manage cell_v2 discover_hosts --verbose
 ----
 
 Create a VM
 
-[source,bash]
+[source,bash,role=execute]
 ----
 oc rsh -n openstack openstackclient
 export GATEWAY=192.168.123.1
@@ -48,7 +77,10 @@ export DNS_SERVER=8.8.8.8
 openstack flavor create --ram 512 --disk 1 --vcpu 1 --public tiny
 curl -O -L https://github.com/cirros-dev/cirros/releases/download/0.6.2/cirros-0.6.2-x86_64-disk.img
 openstack image create cirros --container-format bare --disk-format qcow2 --public --file cirros-0.6.2-x86_64-disk.img
+----
 
+[source,bash,role=execute]
+----
 ssh-keygen -m PEM -t rsa -b 2048 -f ~/.ssh/id_rsa_pem
 openstack keypair create --public-key ~/.ssh/id_rsa_pem.pub default
 openstack security group create basic
@@ -69,28 +101,55 @@ openstack subnet create private-net \
 openstack router create vrouter
 openstack router set vrouter --external-gateway public
 openstack router add subnet vrouter private-net
+----
 
+[source,bash,role=execute]
+----
 openstack server create \
     --flavor tiny --key-name default --network private --security-group basic \
     --image cirros test-server
 openstack floating ip create public
+----
+
+[source,bash,role=execute]
+----
 openstack server add floating ip test-server <FLOATING_IP>
+exit
 ----
 
 From the bastion access to the VM:
 
-[source,bash]
+[source,bash,role=execute]
 ----
 ssh cirros@<FLOATING_IP> (password is gocubsgo)
 ----
 
+[source,bash,role=execute]
+----
+exit
+----
+
 == Optional: Enable Horizon
 
-From the Bastion, do run:
+From the Bastion:
 
-[source,bash]
+[source,bash,role=execute]
 ----
 oc patch openstackcontrolplanes/openstack-galera-network-isolation -p='[{"op": "replace", "path": "/spec/horizon/enabled", "value": true}]' --type json
 ----
 
-Then connect to Horizon at "https://horizon-openstack.apps.{rest-of-your-url}/" with user "admin".
+Get the Route
+
+[source,bash,role=execute]
+----
+ROUTE=$(oc get routes horizon  -o go-template='https://{{range .status.ingress}}{{.host}}{{end}}')
+echo $ROUTE
+----
+
+.Sample Output
+----
+https://horizon-openstack.apps.86dgb.dynamic.redhatworkshops.io
+----
+
+Click the url and log in as:
+TODO

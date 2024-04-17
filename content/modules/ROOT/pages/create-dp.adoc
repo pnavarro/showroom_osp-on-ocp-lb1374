@@ -1,8 +1,8 @@
-= Configure the Dataplane Network
+= Configure the Data Plane
 
 Using a preconfigured yaml file(*files/osp-ng-dataplane-netconfig.yaml*) we will configure the topology for each data plane network.
 
-If needed cd to files:
+Change directory to the files:
 
 [source,bash,role=execute]
 ----
@@ -27,10 +27,10 @@ logout
 
 .Sample Output
 ----
-[root@hypervisor ~]#
+[lab-user@hypervisor ~]#
 ----
 
-Create the *RHEL compute* on lab-user(*hypervisor*) server:
+Create the *RHEL compute* on lab-user (*hypervisor*) server:
 
 [source,bash,role=execute]
 ----
@@ -51,7 +51,7 @@ virt-install --virt-type kvm --ram 16384 --vcpus 4 --cpu=host-passthrough --os-v
 virsh start osp-compute0
 ----
 
-=== Login to the Compute and verify
+=== Login to the Compute and Verify
 
 Verify IP from 192.168.123.0/24
 
@@ -85,6 +85,9 @@ ssh to the IP assigned
 
 
 === Configure Ethernet Devices on New Compute
+
+SSH to the new VM.
+There is no password.
 
 [source,bash,role=execute]
 ----
@@ -128,9 +131,14 @@ Subscribe to the RHEL 9.3 Repos with Validated Account
 
 [source,bash,role=execute]
 ----
-sudo subscription-manager register --org="Red_Hat_RHDP_Labs" --activationkey="demosat-smt-b1374-1711111157"
+curl -ko /etc/pki/ca-trust/source/anchors/demosat-ha.infra.demo.redhat.com.ca.crt  "https://demosat-ha.infra.demo.redhat.com/pub/katello-server-ca.crt"
+update-ca-trust
+yum install -y "https://demosat-ha.infra.demo.redhat.com/pub/katello-ca-consumer-latest.noarch.rpm"
+subscription-manager register --org="Red_Hat_RHDP_Labs"  --activationkey="demosat-smt-b1374-1711111157" --serverurl=https://demosat-ha.infra.demo.redhat.com:8443/rhsm --baseurl=https://demosat-ha.infra.demo.redhat.com/pulp/repos
+
 sudo subscription-manager repos --disable=*
 subscription-manager repos --enable=rhceph-6-tools-for-rhel-9-x86_64-rpms --enable=rhel-9-for-x86_64-baseos-rpms --enable=rhel-9-for-x86_64-appstream-rpms --enable=rhel-9-for-x86_64-highavailability-rpms --enable=openstack-17.1-for-rhel-9-x86_64-rpms --enable=fast-datapath-for-rhel-9-x86_64-rpms
+# next line fails
 sudo subscription-manager release --set=9.3
 ----
 
@@ -169,7 +177,12 @@ Connect to the *bastion* server (Remember that bastion password is *redhat*):
 
 [source,bash,role=execute]
 ----
-[lab-user@hypervisor ~]$ ssh root@192.168.123.100
+ssh root@192.168.123.100
+----
+
+.Sample Output
+----
+[root@ocp4-bastion ~] #
 ----
 
 Change to Lab Repo
@@ -203,14 +216,24 @@ You can view the Ansible logs while the deployment executes:
 oc logs -l app=openstackansibleee -f --max-log-requests 10
 ----
 
+.Sample Output
+----
+PLAY RECAP *********************************************************************
+edpm-compute-0             : ok=53   changed=26   unreachable=0    failed=0    skipped=54   rescued=0    ignored=0
+----
+
 Ctrl-C to exit.
 
-Verify that the data plane is deployed:
+Verify that the data plane is deployed.
+
+NOTE: This takes several minutes.
 
 [source,bash,role=execute]
 ----
 oc get openstackdataplanedeployment
 ----
+
+Repeat the query until you see the following:
 
 .Sample Output
 ----
@@ -222,6 +245,8 @@ openstack-edpm-ipam   True     Setup Complete
 ----
 oc get openstackdataplanenodeset
 ----
+
+Repeat the query until you see the following:
 
 .Sample Output
 ----

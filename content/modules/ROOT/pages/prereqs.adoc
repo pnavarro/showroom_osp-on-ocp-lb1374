@@ -15,7 +15,7 @@ If needed, you can navigate to the OpenShift console URL: {ocp_console_url} usin
 
 == Prerequisites for Installation
 
-Some prerequisites needed to install Red Hat OpenStack Services on OpenShift(RHOSO) are already included in the lab environment such as:
+Some prerequisites needed to install Red Hat OpenStack Services on OpenShift (RHOSO) are already included in the lab environment such as:
 
 * An operational OpenShift cluster running 4.14 which supports Multus CNI
 * oc command line tool on your workstation (bastion host)
