@@ -2,16 +2,16 @@
 
 == Access Your Lab Environment
 
-You can ssh to your hypervisor at IP address {bastion_public_hostname}.  Use username {bastion_ssh_user_name} and password {bastion_ssh_password}.
+You can ssh to your hypervisor at IP address {bastion_public_hostname}.  Use username `{bastion_ssh_user_name}` and password `{bastion_ssh_password}`.
 
-Once logged in the hypervisor you can access to the bastion using password *redhat*:
+Once logged in the hypervisor you can access to the bastion using password `redhat`:
 
 [source,bash]
 ----
 ssh root@192.168.123.100
 ----
 
-If needed, you can navigate to the OpenShift console URL: {ocp_console_url} using user *admin* and password {ocp_admin_password}
+If needed, you can navigate to the OpenShift console URL: {ocp_console_url} using user `admin` and password `{ocp_admin_password}`
 
 == Prerequisites for Installation
 
