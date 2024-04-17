@@ -28,13 +28,13 @@ For ease of instructions it will be assumed the repo has been cloned
 
 === Install the Prerequisite Operators
 
-There are three operators that are required to be installed before you can install the OpenStack Operator, the https://access.redhat.com/documentation/en-us/openshift_container_platform/4.13/html/networking/kubernetes-nmstate#installing-the-kubernetes-nmstate-operator-cli[NMState  Operator] the https://access.redhat.com/documentation/en-us/openshift_container_platform/4.13/html/networking/load-balancing-with-metallb#nw-metallb-installing-operator-cli_metallb-operator-install[MetalLB  Operator]  and the https://docs.openshift.com/container-platform/4.14///security/cert_manager_operator/cert-manager-operator-install.html[Cert-Manager + Operator]
+There are three operators that are required to be installed before you can install the OpenStack Operator, the https://access.redhat.com/documentation/en-us/openshift_container_platform/4.13/html/networking/kubernetes-nmstate#installing-the-kubernetes-nmstate-operator-cli[NMState  Operator^] the https://access.redhat.com/documentation/en-us/openshift_container_platform/4.13/html/networking/load-balancing-with-metallb#nw-metallb-installing-operator-cli_metallb-operator-install[MetalLB  Operator^]  and the https://docs.openshift.com/container-platform/4.14///security/cert_manager_operator/cert-manager-operator-install.html[Cert-Manager + Operator^]
 
 ==== Accessing the Cluster
 
 From the hypervisor, log in to the bastion
 
-[source,bash]
+[source,bash,role=execute]
 ----
 ssh root@192.168.123.100
 ----
@@ -43,7 +43,7 @@ Password is `redhat`.
 
 .Sample Output
 ----
-[[root@ocp4-bastion ~]]
+[root@ocp4-bastion ~]
 ----
 
 Make sure you can reach out to the OpenShift cluster, for instance, by listing the nodes in your cluster:
