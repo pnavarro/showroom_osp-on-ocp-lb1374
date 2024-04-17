@@ -5,7 +5,7 @@ These instructions will guide you through the installation of the next generatio
 
 In this lab, you will use the following infrastructure:
 
-* A 3 node 4.13 OCP cluster
+* A 3 node OCP cluster
 * A RHEL 9.3 bastion host dataplane
 
 In this lab, you will cover the following topics:

@@ -1,6 +1,6 @@
 = Configuration, Installation, and Use of Red Hat OpenStack Services on OpenShift
 
-== Access Your Lab
+== Access Your Lab Environment
 
 You can ssh to your hypervisor at IP address {bastion_public_hostname}.  Use username {bastion_ssh_user_name} and password {bastion_ssh_password}.
 
@@ -17,7 +17,7 @@ If needed, you can navigate to the OpenShift console URL: {ocp_console_url} usin
 
 Some prerequisites needed to install Red Hat OpenStack Services on OpenShift (RHOSO) are already included in the lab environment such as:
 
-* An operational OpenShift cluster running 4.14 which supports Multus CNI
+* An operational OpenShift cluster which supports Multus CNI
 * oc command line tool on your workstation (bastion host)
 * k9s command line tool on your workstation (bastion host)
 * podman command line tool on your workstation (bastion host)
