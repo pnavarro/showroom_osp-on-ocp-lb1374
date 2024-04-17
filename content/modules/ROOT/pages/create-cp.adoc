@@ -50,3 +50,15 @@ oc create secret generic glance-cinder-config --from-file=glance-conf
 oc create -f osp-ng-ctlplane-deploy.yaml
 ----
 
+Wait until the openstack control plane deployment is completed:
+
+[source,bash]
+----
+oc get openstackcontrolplane -n openstack
+
+Output:
+NAME                                 STATUS   MESSAGE
+openstack-galera-network-isolation   True     Setup complete
+----
+
+

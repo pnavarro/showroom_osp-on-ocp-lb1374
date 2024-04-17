@@ -121,6 +121,13 @@ spec:
 EOF
 ----
 
+Confirm that NMstate operator is running
+
+[source,bash]
+----
+oc get clusterserviceversion -n openshift-nmstate  -o custom-columns=Name:.metadata.name,Phase:.status.phase
+----
+
 Create instance of the *nmstate* operator:
 
 [source,bash]

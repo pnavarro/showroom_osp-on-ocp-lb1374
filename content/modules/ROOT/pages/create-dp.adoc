@@ -55,6 +55,20 @@ Verify IP from 192.168.123.0/24
 ----
 watch virsh domifaddr osp-compute0 --source agent
 ----
+Output:
+[source,bash]
+----
+Every 2.0s: virsh domifaddr osp-compute0 --source agent                                                                                                 hypervisor: Wed Apr 17 07:03:13 2024
+
+ Name       MAC address          Protocol     Address
+-------------------------------------------------------------------------------
+ lo         00:00:00:00:00:00    ipv4         127.0.0.1/8
+ -          -                    ipv6         ::1/128
+ eth0       52:54:00:c0:0a:26    ipv4         172.22.0.202/24
+ -          -                    ipv6         fe80::16:d083:92f4:f201/64
+ eth1       52:54:00:e5:ce:09    ipv4         192.168.123.61/24
+ -          -                    ipv6         fe80::bfc0:e5db:a655:729f/64
+----
 
 (control + C to continue)
 
@@ -137,7 +151,7 @@ scp /root/.ssh/id_rsa.pub root@192.168.123.100:/root/.ssh/id_rsa_compute.pub
 
 == Create a secret for the dataplane
 
-Back on the *bastion* server:
+Back on the *bastion* server (Remember that bastion password is redhat):
 
 [source,bash]
 ----
@@ -168,7 +182,6 @@ You can view the Ansible logs while the deployment executes:
 
 [source,bash]
 ----
-oc get pod -l app=openstackansibleee -w
 oc logs -l app=openstackansibleee -f --max-log-requests 10
 ----
 

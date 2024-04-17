@@ -52,7 +52,12 @@ Create the new **CatalogSource, OperatorGroup, and Subscription** CRs in the **o
 oc apply -f osp-ng-openstack-operator.yaml
 ----
 
-Confirm that you have installed the Openstack Operator, **openstack-operator.openstack-operators**: ``` oc get operators openstack-operator.openstack-operators ``` 
+Confirm that you have installed the Openstack Operator, **openstack-operator.openstack-operators**: 
+
+[source,bash]
+---- 
+oc get operators openstack-operator.openstack-operators
+----
 
 Review the pods in the **openstack-operators** namespace: 
 [source,bash]
