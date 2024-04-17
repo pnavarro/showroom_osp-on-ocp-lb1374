@@ -1,9 +1,9 @@
-= Creating the OpenStack Control Plane
+= Create the OpenStack Control Plane
 
 We will be using a preconfigured file (*files/osp-ng-ctlplane-deploy.yaml*) to create the control plane and at the same time enable the required services, configure the control plane network, and configure the service back ends.
 The bastion has a preconfigured NFS service that we will be using to store glance images and cinder volumes.
 
-== Create a nfs share for cinder
+== Create an NFS share for cinder
 
 [source,bash]
 ----
@@ -11,7 +11,7 @@ mkdir /nfs/cinder
 chmod 777 /nfs/cinder
 ----
 
-== Configure nfs storage class
+== Configure NFS storage class
 
 [source,bash]
 ----
@@ -50,7 +50,7 @@ oc create secret generic glance-cinder-config --from-file=glance-conf
 oc create -f osp-ng-ctlplane-deploy.yaml
 ----
 
-Wait until the openstack control plane deployment is completed:
+Wait until the OpenStack control plane deployment is completed:
 
 [source,bash]
 ----
@@ -60,5 +60,3 @@ Output:
 NAME                                 STATUS   MESSAGE
 openstack-galera-network-isolation   True     Setup complete
 ----
-
-
