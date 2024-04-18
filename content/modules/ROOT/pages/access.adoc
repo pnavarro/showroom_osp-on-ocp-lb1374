@@ -1,15 +1,5 @@
 = Access the OpenStack
 
-From the *hypervisor server* access the compute node and disable selinux.
-Note that this is a temporary workaround as we are using OSP 17.1 packages.
-
-[source,bash]
-----
-sudo -i
-ssh root@172.22.0.100
-setenforce 0
-----
-
 From the *bastion server* access the Control Plane:
 
 [source,bash]
