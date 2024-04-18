@@ -148,5 +148,4 @@ echo $ROUTE
 https://horizon-openstack.apps.86dgb.dynamic.redhatworkshops.io
 ----
 
-Click the url and log in as:
-TODO
+Click the url and log in as username `admin` password `openstack`
