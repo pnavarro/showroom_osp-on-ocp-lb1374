@@ -61,10 +61,3 @@ Lastly, configure a *L2Advertisement* resource which will define which node adve
 ----
 oc apply -f osp-ng-metal-lb-l2-advertisements.yaml
 ----
-
-Configure the Dataplane Network using a preconfigured yaml file (`files/osp-ng-dataplane-netconfig.yaml`) which will configure the topology for each data plane network.
-
-[source,bash,role=execute]
-----
-oc apply -f osp-ng-dataplane-netconfig.yaml
-----
