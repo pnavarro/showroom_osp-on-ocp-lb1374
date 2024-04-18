@@ -60,10 +60,3 @@ Lastly, we will configure a *L2Advertisement* resource which will define which n
 ----
 oc apply -f osp-ng-metal-lb-l2-advertisements.yaml
 ----
-
-Configure the Dataplane Network using a preconfigured yaml file(*files/osp-ng-dataplane-netconfig.yaml*) which will configure the topology for each data plane network.
-
-[source,bash]
-----
-oc apply -f osp-ng-dataplane-netconfig.yaml
-----
