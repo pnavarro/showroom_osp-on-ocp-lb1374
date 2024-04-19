@@ -10,17 +10,15 @@ In this lab, you will use the following infrastructure:
 
 In this lab, you will cover the following topics:
 
-* xref:prereqs.adoc[_Perform Pre-requisites_]
-* xref:install-operators.adoc[_Install the Red Hat OpenStack Platform service Operators_]
-* xref:secure.adoc[_Configure secure access for OpenStack services_]
-* xref:network-isolation.adoc[_Prepare OCP for OpenStack network isolation_]
-* xref:create-cp.adoc[_Create the control plane_]
-* xref:create-dp.adoc[_Create the data plane_]
-* xref:access.adoc[_Access the data plane_]
+* xref:prereqs.adoc[Perform Prerequisite Operations]
+* xref:install-operators.adoc[Install the Red Hat OpenStack Platform Service Operators]
+* xref:secure.adoc[Configure Secure Access for OpenStack Services]
+* xref:network-isolation.adoc[Prepare OCP for OpenStack Network Isolation]
+* xref:create-cp.adoc[Create the Control Plane]
+* xref:create-dp.adoc[Create the Data plane]
+* xref:access.adoc[Access OpenStack]
 
 Within the lab environment, you will be able to copy and paste the specified commands into the CLI.
 For some steps you may also need to edit some of the commands from the  instructions.
 
 *Be sure to review all commands carefully both for functionality and syntax!*
-
-When you're ready, click "next" to get started...

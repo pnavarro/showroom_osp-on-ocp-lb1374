@@ -1,18 +1,18 @@
-== Preparing RHOCP for RHOSP network isolation
+== Preparing RHOCP for RHOSP Network Isolation
 
-We will be using a preconfigured set of yaml files in the *files* directory which start with *osp-ng-nncp-*.
-There are 3 files for each of the master and worker nodes.
+We will be using a preconfigured set of yaml files in the `files` directory which start with `osp-ng-nncp-`.
+There are 3 files for each of the control plane and worker nodes.
 
-If not already in the *files directory*:
+Change to the `files` directory:
 
-[source,bash]
+[source,bash,role=execute]
 ----
 cd ~/labrepo/content/files
 ----
 
-The preconfigured yamls will be applied indivdually:
+Apply preconfigured yamls indivdually:
 
-[source,bash]
+[source,bash,role=execute]
 ----
 oc apply -f osp-ng-nncp-w1.yaml
 oc apply -f osp-ng-nncp-w2.yaml
@@ -24,11 +24,12 @@ oc apply -f osp-ng-nncp-m3.yaml
 
 Wait until they are in an available state before proceeding:
 
-[source,bash]
+[source,bash,role=execute]
 ----
 oc get nncp -w
 ----
 
+.Sample Output
 [source,bash]
 ----
 NAME                              STATUS      REASON
@@ -40,23 +41,23 @@ osp-enp1s0-worker-ocp4-worker2    Available   SuccessfullyConfigured
 osp-enp1s0-worker-ocp4-worker3    Available   SuccessfullyConfigured
 ----
 
-Before proceeding we will configure  a *nad* resource for each isolated network to attach a service pod to the network:
+Before proceeding configure a *nad* resource for each isolated network to attach a service pod to the network:
 
-[source,bash]
+[source,bash,role=execute]
 ----
 oc apply -f osp-ng-netattach.yaml
 ----
 
-Once the nodes are available and attached we will configure the *MetalLB IP address range* using a preconfigured yaml file:
+Once the nodes are available and attached configure the *MetalLB IP address range* using a preconfigured yaml file:
 
-[source,bash]
+[source,bash,role=execute]
 ----
 oc apply -f osp-ng-metal-lb-ip-address-pools.yaml
 ----
 
-Lastly, we will configure a *L2Advertisement* resource which will define which node advertises a service to the local network which has been preconfigured for your demo environment:
+Lastly, configure a *L2Advertisement* resource which will define which node advertises a service to the local network which has been preconfigured for your demo environment:
 
-[source,bash]
+[source,bash,role=execute]
 ----
 oc apply -f osp-ng-metal-lb-l2-advertisements.yaml
 ----

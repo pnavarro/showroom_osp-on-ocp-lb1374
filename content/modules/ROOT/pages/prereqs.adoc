@@ -1,23 +1,19 @@
 = Configuration, Installation, and Use of Red Hat OpenStack Services on OpenShift
 
-== Access Your Lab
+== Access Your Lab Environment
 
-You can ssh to your hypervisor at IP address {bastion_public_hostname}.  Use username {bastion_ssh_user_name} and password {bastion_ssh_password}.
+During this lab you will be instructed to ssh to your hypervisor at IP address {bastion_public_hostname}.
+Use username `{bastion_ssh_user_name}` and password `{bastion_ssh_password}`.
 
-Once logged in the hypervisor you can access to the bastion using password *redhat*:
+Once logged in the hypervisor you can access to the bastion at IP address `192.168.123.100` as `root` using password `redhat`.
 
-[source,bash,role=execute]
-----
-ssh root@192.168.123.100
-----
-
-If needed, you can navigate to the OpenShift console URL: {ocp_console_url} using user *admin* and password {ocp_admin_password}
+If needed, you can navigate to the OpenShift console URL: {ocp_console_url}[{ocp_console_url}^] using user `admin` and password `{ocp_admin_password}`
 
 == Prerequisites for Installation
 
-Some prerequisites needed to install Red Hat OpenStack Services on OpenShift(RHOSO) are already included in the lab environment such as:
+Some prerequisites needed to install Red Hat OpenStack Services on OpenShift (RHOSO) are already included in the lab environment such as:
 
-* An operational OpenShift cluster running 4.14 which supports Multus CNI
+* An operational OpenShift cluster which supports Multus CNI
 * oc command line tool on your workstation (bastion host)
 * k9s command line tool on your workstation (bastion host)
 * podman command line tool on your workstation (bastion host)
@@ -28,18 +24,22 @@ For ease of instructions it will be assumed the repo has been cloned
 
 === Install the Prerequisite Operators
 
-There are three operators that are required to be installed before you can install the OpenStack Operator, the https://access.redhat.com/documentation/en-us/openshift_container_platform/4.13/html/networking/kubernetes-nmstate#installing-the-kubernetes-nmstate-operator-cli[NMState  Operator] the https://access.redhat.com/documentation/en-us/openshift_container_platform/4.13/html/networking/load-balancing-with-metallb#nw-metallb-installing-operator-cli_metallb-operator-install[MetalLB  Operator]  and the https://docs.openshift.com/container-platform/4.14///security/cert_manager_operator/cert-manager-operator-install.html[Cert-Manager + Operator]
+There are three operators that are required to be installed before you can install the OpenStack Operator, the https://access.redhat.com/documentation/en-us/openshift_container_platform/4.13/html/networking/kubernetes-nmstate#installing-the-kubernetes-nmstate-operator-cli[NMState  Operator^] the https://access.redhat.com/documentation/en-us/openshift_container_platform/4.13/html/networking/load-balancing-with-metallb#nw-metallb-installing-operator-cli_metallb-operator-install[MetalLB  Operator^]  and the https://docs.openshift.com/container-platform/4.14///security/cert_manager_operator/cert-manager-operator-install.html[Cert-Manager + Operator^]
 
-=== Installing the Prerequisite Operators using the CLI
+==== Accessing the Cluster
 
-==== Logging in to the Cluster
-
-Log in the bastion
+From the hypervisor, log in to the bastion
 
 [source,bash,role=execute]
 ----
-[lab-user@hypervisor ~]$ ssh root@192.168.123.100
-[[root@ocp4-bastion ~]]
+ssh root@192.168.123.100
+----
+
+Password is `redhat`.
+
+.Sample Output
+----
+[root@ocp4-bastion ~]
 ----
 
 Make sure you can reach out to the OpenShift cluster, for instance, by listing the nodes in your cluster:
@@ -126,11 +126,18 @@ spec:
 EOF
 ----
 
-Confirm that NMstate operator is running
+Confirm that NMstate operator is running.
+Repeat this command until you see the desired output:
 
 [source,bash,role=execute]
 ----
 oc get clusterserviceversion -n openshift-nmstate  -o custom-columns=Name:.metadata.name,Phase:.status.phase
+----
+
+.Sample Output
+----
+Name                                              Phase
+kubernetes-nmstate-operator.4.13.0-202402211707   Succeeded
 ----
 
 Create instance of the *nmstate* operator:
@@ -220,7 +227,7 @@ oc get clusterserviceversion -n metallb-system \
  -o custom-columns=Name:.metadata.name,Phase:.status.phase
 ----
 
-Wait until the Phase is Succeeded.
+Repeat the query until the Phase is Succeeded.
 
 Create a single instance of a *metallb* resource:
 
@@ -241,6 +248,8 @@ Verify that the deployment for the controller is running:
 ----
 oc get deployment -n metallb-system controller
 ----
+
+Repeat the command until AVAILABLE is 1
 
 Verify that the daemon set for the speaker is running:
 
@@ -332,4 +341,13 @@ Verify that cert-manager pods are up and running by entering the following comma
 [source,bash,role=execute]
 ----
 oc get pods -n cert-manager
+----
+
+Repeat command until all pods are showing READY 1/1
+
+.Sample Output
+----
+NAME                                      READY   STATUS    RESTARTS   AGE
+cert-manager-cainjector-5df47878b-knmwg   1/1     Running   0          19s
+cert-manager-webhook-66c75fcddf-8kldt     1/1     Running   0          23s
 ----
