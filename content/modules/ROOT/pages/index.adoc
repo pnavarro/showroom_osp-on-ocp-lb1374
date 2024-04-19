@@ -22,5 +22,3 @@ Within the lab environment, you will be able to copy and paste the specified com
 For some steps you may also need to edit some of the commands from the  instructions.
 
 *Be sure to review all commands carefully both for functionality and syntax!*
-
-When you're ready, click "next" to get started...
