@@ -1,17 +1,17 @@
-= Configure the Dataplane Network
+= Configure the Data Plane
 
 Using a preconfigured yaml file(*files/osp-ng-dataplane-netconfig.yaml*) we will configure the topology for each data plane network.
 
-If needed cd to files:
+Change directory to the files:
 
-[source,bash]
+[source,bash,role=execute]
 ----
 cd ~/labrepo/content/files
 ----
 
 Apply the *network confguration*:
 
-[source,bash]
+[source,bash,role=execute]
 ----
 oc apply -f osp-ng-dataplane-netconfig.yaml
 ----
@@ -20,15 +20,19 @@ oc apply -f osp-ng-dataplane-netconfig.yaml
 
 Log out from the bastion so that we go back to the hypervisor machine:
 
-[source,bash]
+[source,bash,role=execute]
 ----
 logout
-[root@hypervisor ~]#
 ----
 
-Create the *RHEL compute* on lab-user(*hypervisor*) server:
+.Sample Output
+----
+[lab-user@hypervisor ~]#
+----
 
-[source,bash]
+Create the *RHEL compute* on lab-user (*hypervisor*) server:
+
+[source,bash,role=execute]
 ----
 sudo -i
 cd /var/lib/libvirt/images
@@ -47,15 +51,16 @@ virt-install --virt-type kvm --ram 16384 --vcpus 4 --cpu=host-passthrough --os-v
 virsh start osp-compute0
 ----
 
-=== Login to the Compute and verify
+=== Login to the Compute and Verify
 
 Verify IP from 192.168.123.0/24
 
-[source,bash]
+[source,bash,role=execute]
 ----
 watch virsh domifaddr osp-compute0 --source agent
 ----
-Output:
+
+.Sample Output
 [source,bash]
 ----
 Every 2.0s: virsh domifaddr osp-compute0 --source agent                                                                                                 hypervisor: Wed Apr 17 07:03:13 2024
@@ -70,22 +75,26 @@ Every 2.0s: virsh domifaddr osp-compute0 --source agent                         
  -          -                    ipv6         fe80::bfc0:e5db:a655:729f/64
 ----
 
-(control + C to continue)
+(CTRL + C to continue)
 
-[source,bash]
+[source,bash,role=execute]
 ----
 virsh domifaddr osp-compute0 --source agent
 ----
-ssh to the IP assigned
 
-[source,bash]
+Use the IP assigned to `eth1` above in the next step.
+
+=== Configure Ethernet Devices on New Compute
+
+SSH to the new VM.
+There is no password.
+
+[source,bash,role=execute]
 ----
 ssh root@192.168.123.61
 ----
 
-==== Configure ethernet devices
-
-[source,bash]
+[source,bash,role=execute]
 ----
 nmcli co delete 'Wired connection 1'
 nmcli con add con-name "static-eth0" ifname eth0 type ethernet ip4 172.22.0.100/24 ipv4.dns "172.22.0.89"
@@ -97,72 +106,96 @@ nmcli con up "static-eth1"
 
 And log off VM
 
-[source,bash]
+[source,bash,role=execute]
 ----
 logout
 ----
 
-==== Log into the compute server, set hostname, and subscribe it with a validated account
+=== Set up Compute Server
 
-[source,bash]
+Log into the compute server
+
+[source,bash,role=execute]
 ----
 ssh root@172.22.0.100
+----
+
+Set hostname
+
+[source,bash,role=execute]
+----
 sudo hostnamectl set-hostname edpm-compute-0.aio.example.com
 ----
 
-==== Configure for the RHEL 9.3 Repos
+Subscribe to the RHEL 9.3 Repos with Validated Account
 
-[source,bash]
+[source,bash,role=execute]
 ----
-sudo subscription-manager register --org="Red_Hat_RHDP_Labs" --activationkey="demosat-smt-b1374-1711111157"
+curl -ko /etc/pki/ca-trust/source/anchors/demosat-ha.infra.demo.redhat.com.ca.crt  "https://demosat-ha.infra.demo.redhat.com/pub/katello-server-ca.crt"
+update-ca-trust
+yum install -y "https://demosat-ha.infra.demo.redhat.com/pub/katello-ca-consumer-latest.noarch.rpm"
+subscription-manager register --org="Red_Hat_RHDP_Labs"  --activationkey="demosat-smt-b1374-1711111157" --serverurl=https://demosat-ha.infra.demo.redhat.com:8443/rhsm --baseurl=https://demosat-ha.infra.demo.redhat.com/pulp/repos
+
 sudo subscription-manager repos --disable=*
 subscription-manager repos --enable=rhceph-6-tools-for-rhel-9-x86_64-rpms --enable=rhel-9-for-x86_64-baseos-rpms --enable=rhel-9-for-x86_64-appstream-rpms --enable=rhel-9-for-x86_64-highavailability-rpms --enable=openstack-dev-preview-for-rhel-9-x86_64-rpms --enable=fast-datapath-for-rhel-9-x86_64-rpms
 ----
 
-==== Install podman on the compute and login to registries
+Install podman on the compute and login to registries
 
-[source,bash]
+[source,bash,role=execute]
 ----
 sudo dnf install -y podman
 ----
 
-Log off
+Log off the Compute Server
 
-[source,bash]
+[source,bash,role=execute]
 ----
 logout
 ----
 
-=== Snapshot the Compute
+Snapshot the Compute Server
 
-[source,bash]
+[source,bash,role=execute]
 ----
 virsh snapshot-create-as osp-compute0 preprovisioned
 ----
 
-=== Set SSH key
+Set SSH key
 
-[source,bash]
+[source,bash,role=execute]
 ----
 scp /root/.ssh/id_rsa root@192.168.123.100:/root/.ssh/id_rsa_compute
 scp /root/.ssh/id_rsa.pub root@192.168.123.100:/root/.ssh/id_rsa_compute.pub
 ----
 
-== Create a secret for the dataplane
+WARNING: This might error initially because of unknown hosts file.
+Retry to make sure both files are copied.
 
-Back on the *bastion* server (Remember that bastion password is redhat):
+=== Finish the Dataplane
 
-[source,bash]
+Connect to the *bastion* server (Remember that bastion password is *redhat*):
+
+[source,bash,role=execute]
 ----
-[lab-user@hypervisor ~]$ ssh root@192.168.123.100
+ssh root@192.168.123.100
 ----
 
-[source,bash]
+.Sample Output
+----
+[root@ocp4-bastion ~] #
+----
+
+Change to Lab Repo
+
+[source,bash,role=execute]
 ----
 cd ~/labrepo/content/files
 ----
 
-[source,bash]
+Create Secret
+
+[source,bash,role=execute]
 ----
 oc create secret generic dataplane-ansible-ssh-private-key-secret --save-config --dry-run=client --from-file=authorized_keys=/root/.ssh/id_rsa_compute.pub --from-file=ssh-privatekey=/root/.ssh/id_rsa_compute --from-file=ssh-publickey=/root/.ssh/id_rsa_compute.pub -n openstack -o yaml | oc apply -f-
 ssh-keygen -f ./id -t ecdsa-sha2-nistp521 -N ''
@@ -171,7 +204,7 @@ oc create secret generic nova-migration-ssh-key --from-file=ssh-privatekey=id --
 
 Deploy the Dataplane
 
-[source,bash]
+[source,bash,role=execute]
 ----
 oc apply -f osp-ng-dataplane-node-set-deploy.yaml
 oc apply -f osp-ng-dataplane-deployment.yaml
@@ -179,20 +212,46 @@ oc apply -f osp-ng-dataplane-deployment.yaml
 
 You can view the Ansible logs while the deployment executes:
 
-[source,bash]
+[source,bash,role=execute]
 ----
 oc logs -l app=openstackansibleee -f --max-log-requests 10
 ----
 
-Verify that the data plane is deployed:
-[source,bash]
+.Sample Output
 ----
-$ oc get openstackdataplanedeployment
-NAME             	STATUS   MESSAGE
+(...)
+PLAY RECAP *********************************************************************
+edpm-compute-0             : ok=53   changed=26   unreachable=0    failed=0    skipped=54   rescued=0    ignored=0
+----
+
+Ctrl-C to exit.
+
+Verify that the data plane is deployed.
+
+NOTE: This takes several minutes.
+
+[source,bash,role=execute]
+----
+oc get openstackdataplanedeployment
+----
+
+Repeat the query until you see the following:
+
+.Sample Output
+----
+NAME                  STATUS   MESSAGE
 openstack-edpm-ipam   True     Setup Complete
+----
 
+[source,bash,role=execute]
+----
+oc get openstackdataplanenodeset
+----
 
-$ oc get openstackdataplanenodeset
-NAME             	STATUS   MESSAGE
+Repeat the query until you see the following:
+
+.Sample Output
+----
+NAME                  STATUS   MESSAGE
 openstack-edpm-ipam   True     NodeSet Ready
 ----
