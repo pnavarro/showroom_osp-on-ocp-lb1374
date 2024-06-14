@@ -165,6 +165,7 @@ Set SSH key
 
 [source,bash,role=execute]
 ----
+sudo -i
 scp /root/.ssh/id_rsa root@192.168.123.100:/root/.ssh/id_rsa_compute
 scp /root/.ssh/id_rsa.pub root@192.168.123.100:/root/.ssh/id_rsa_compute.pub
 ----
@@ -178,6 +179,7 @@ Connect to the *bastion* server (Remember that bastion password is *redhat*):
 
 [source,bash,role=execute]
 ----
+sudo -i
 ssh root@192.168.123.100
 ----
 
