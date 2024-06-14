@@ -168,10 +168,14 @@ Create the *MetalLB* Operator namespace:
 [source,bash,role=execute]
 ----
 cat << EOF | oc apply -f -
-apiVersion: v1
-kind: Namespace
+apiVersion: metallb.io/v1beta1
+kind: MetalLB
 metadata:
-  name: metallb-system
+  name: metallb
+  namespace: metallb-system
+spec:
+  nodeSelector:
+    node-role.kubernetes.io/worker: ""
 EOF
 ----
 
