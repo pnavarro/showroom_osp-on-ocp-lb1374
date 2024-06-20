@@ -211,6 +211,13 @@ oc edit csv openstack-operator.v1.0.0 -n openstack-operators
 oc edit csv openstack-ansibleee-operator.v1.0.0 -n openstack-operators
 ----
 
+Check the csvs are in Succeeded stated:
+[source,bash,role=execute]
+----
+oc get csv openstack-operator.v1.0.0 -n openstack-operators
+oc get csv openstack-ansibleee-operator.v1.0.0 -n openstack-operators
+----
+
 Deploy the Dataplane
 
 [source,bash,role=execute]
