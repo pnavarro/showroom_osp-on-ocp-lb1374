@@ -24,7 +24,6 @@ spec:
     - neutron-metadata
     - libvirt
     - nova
-    - telemetry
   preProvisioned: true
   networkAttachments:
   - ctlplane
