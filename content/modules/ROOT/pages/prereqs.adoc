@@ -163,6 +163,23 @@ oc get clusterserviceversion -n openshift-nmstate \
 
 ==== MetalLB Operator
 
+
+Create the *MetalLB* Operator namespace:
+
+[source,bash,role=execute]
+----
+cat << EOF | oc apply -f -
+apiVersion: metallb.io/v1beta1
+kind: MetalLB
+metadata:
+  name: metallb
+  namespace: metallb-system
+spec:
+  nodeSelector:
+    node-role.kubernetes.io/worker: ""
+EOF
+----
+
 Create the *OperatorGroup*:
 
 [source,bash,role=execute]
