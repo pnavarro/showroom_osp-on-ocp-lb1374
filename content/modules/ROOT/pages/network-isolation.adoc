@@ -49,9 +49,24 @@ Once the nodes are available and attached configure the *MetalLB IP address rang
 oc apply -f osp-ng-metal-lb-ip-address-pools.yaml
 ----
 
-Lastly, configure a *L2Advertisement* resource which will define which node advertises a service to the local network which has been preconfigured for your demo environment:
+Configure a *L2Advertisement* resource which will define which node advertises a service to the local network which has been preconfigured for your demo environment:
 
 [source,bash,role=execute]
 ----
 oc apply -f osp-ng-metal-lb-l2-advertisements.yaml
+----
+
+If your cluster is RHOCP 4.14 or later and it has OVNKubernetes as the network back end, then you must enable global forwarding so that MetalLB can work on a secondary network interface.
+
+Check the network back end used by your cluster:
+
+[source,bash,role=execute]
+----
+$ oc get network.operator cluster --output=jsonpath='{.spec.defaultNetwork.type}'
+----
+If the back end is OVNKubernetes, then run the following command to enable global IP forwarding:
+
+[source,bash,role=execute]
+----
+$ oc patch network.operator cluster -p '{"spec":{"defaultNetwork":{"ovnKubernetesConfig":{"gatewayConfig":{"ipForwarding": "Global"}}}}}' --type=merge
 ----
