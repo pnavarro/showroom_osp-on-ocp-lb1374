@@ -1,7 +1,7 @@
 == Preparing RHOCP for RHOSP Network Isolation
 
 We will be using a preconfigured set of yaml files in the `files` directory which start with `osp-ng-nncp-`.
-There are 3 files for each of the control plane and worker nodes.
+There are 3 files for worker nodes.
 
 Change to the `files` directory:
 
