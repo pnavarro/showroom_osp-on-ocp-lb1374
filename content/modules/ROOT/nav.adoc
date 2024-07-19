@@ -5,3 +5,4 @@
 * xref:create-cp.adoc[Create the Control Plane]
 * xref:create-dp.adoc[Create the Data Plane]
 * xref:access.adoc[Access OpenStack]
+* xref:scale-out.adoc[Scale Out your deployment using Cluster Baremetal Operator provisioned nodes]
