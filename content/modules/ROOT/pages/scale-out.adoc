@@ -46,7 +46,6 @@ In the bastion terminal, clone the repo and change directory to the files that w
 +
 [source,bash,role=execute]
 ----
-git clone https://github.com/pnavarro/showroom_osp-on-ocp-advanced.git labrepo
 cd labrepo/content/files
 ----
 
