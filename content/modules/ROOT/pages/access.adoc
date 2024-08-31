@@ -55,11 +55,16 @@ Map the Compute nodes to the Compute cell that they are connected to:
 oc rsh nova-cell0-conductor-0 nova-manage cell_v2 discover_hosts --verbose
 ----
 
-Create a VM
+Access to the openstackclient pod
 
 [source,bash,role=execute]
 ----
 oc rsh -n openstack openstackclient
+----
+
+Create image and flavors
+[source,bash,role=execute]
+----
 export GATEWAY=192.168.123.1
 export PUBLIC_NETWORK_CIDR=192.168.123.1/24
 export PRIVATE_NETWORK_CIDR=192.168.100.0/24
@@ -71,11 +76,16 @@ curl -O -L https://github.com/cirros-dev/cirros/releases/download/0.6.2/cirros-0
 openstack image create cirros --container-format bare --disk-format qcow2 --public --file cirros-0.6.2-x86_64-disk.img
 ----
 
+Generate a keypair:
+[source,bash,role=execute]
+----
+ssh-keygen -m PEM -t rsa -b 2048 -f ~/.ssh/id_rsa_pem
+----
+
 Create Network and Security for the VM
 
 [source,bash,role=execute]
 ----
-ssh-keygen -m PEM -t rsa -b 2048 -f ~/.ssh/id_rsa_pem
 openstack keypair create --public-key ~/.ssh/id_rsa_pem.pub default
 openstack security group create basic
 openstack security group rule create basic --protocol tcp --dst-port 22:22 --remote-ip 0.0.0.0/0
