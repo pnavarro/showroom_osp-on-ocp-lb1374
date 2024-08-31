@@ -111,49 +111,6 @@ And log off VM
 logout
 ----
 
-=== Set up Compute Server
-
-Log into the compute server
-
-[source,bash,role=execute]
-----
-ssh root@172.22.0.100
-----
-
-Set hostname
-
-[source,bash,role=execute]
-----
-sudo hostnamectl set-hostname edpm-compute-0.aio.example.com
-----
-
-Subscribe to the RHEL 9.4 Repos with Validated Account
-
-[source,bash,role=execute]
-----
-curl -ko /etc/pki/ca-trust/source/anchors/demosat-ha.infra.demo.redhat.com.ca.crt  "https://demosat-ha.infra.demo.redhat.com/pub/katello-server-ca.crt"
-update-ca-trust
-yum install -y "https://demosat-ha.infra.demo.redhat.com/pub/katello-ca-consumer-latest.noarch.rpm"
-subscription-manager register --org="Red_Hat_RHDP_Labs"  --activationkey="demosat-smt-b1374-1711111157" --serverurl=https://demosat-ha.infra.demo.redhat.com:8443/rhsm --baseurl=https://demosat-ha.infra.demo.redhat.com/pulp/repos
-
-sudo subscription-manager repos --disable=*
-subscription-manager repos --enable=rhceph-6-tools-for-rhel-9-x86_64-rpms --enable=rhel-9-for-x86_64-baseos-rpms --enable=rhel-9-for-x86_64-appstream-rpms --enable=rhel-9-for-x86_64-highavailability-rpms --enable=openstack-dev-preview-for-rhel-9-x86_64-rpms --enable=fast-datapath-for-rhel-9-x86_64-rpms
-----
-
-Install podman on the compute and login to registries
-
-[source,bash,role=execute]
-----
-sudo dnf install -y podman
-----
-
-Log off the Compute Server
-
-[source,bash,role=execute]
-----
-logout
-----
-
 Snapshot the Compute Server
 
 [source,bash,role=execute]

@@ -83,26 +83,35 @@ spec:
         replicas: 1
       barbicanKeystoneListener:
         replicas: 1
+  extraMounts:
+  - extraVol:
+    - extraVolType: Nfs
+      mounts:
+      - mountPath: /var/lib/glance/images
+        name: nfs
+      propagation:
+      - Glance
+      volumes:
+      - name: nfs
+        nfs:
+          path: /nfs/glance
+          server: 192.168.123.100
+    name: r1
+    region: r1
   glance:
-    apiOverrides:
-      default:
-        route: {}
+    enabled: true
     template:
-      customServiceConfig: |
-            [DEFAULT]
-            enabled_backends = default_backend:cinder
-            [glance_store]
-            default_backend = default_backend
-            [default_backend]
-            rootwrap_config = /etc/glance/rootwrap.conf
-            description = Default cinder backend
-            cinder_catalog_info volumev3::publicURL
-      customServiceConfigSecrets:
-      - glance-cinder-config
       databaseInstance: openstack
-      storageClass: "nfs"
-      storageRequest: 10G
-      secret: osp-secret
+      customServiceConfig: |
+         [DEFAULT]
+         enabled_backends = default_backend:file
+         [glance_store]
+         default_backend = default_backend
+         [default_backend]
+         filesystem_store_datadir = /var/lib/glance/images/
+      storage:
+        storageRequest: 10G
+        storageClass: "nfs"
       keystoneEndpoint: default
       glanceAPIs:
         default:
@@ -119,7 +128,7 @@ spec:
                 spec:
                   type: LoadBalancer
           networkAttachments:
-          - storage
+            - storage
   keystone:
     apiOverride:
       route: {}
@@ -195,6 +204,32 @@ spec:
                 metallb.universe.tf/loadBalancerIPs: 172.17.0.80
             spec:
               type: LoadBalancer
+      schedulerServiceTemplate:
+        override:
+          service:
+            metadata:
+              annotations:
+                metallb.universe.tf/address-pool: internalapi
+                metallb.universe.tf/allow-shared-ip: internalapi
+                metallb.universe.tf/loadBalancerIPs: 172.17.0.80
+            spec:
+              type: LoadBalancer
+      cellTemplates:
+        cell0:
+          cellDatabaseAccount: nova-cell0
+          cellDatabaseInstance: openstack
+          cellMessageBusInstance: rabbitmq
+          hasAPIAccess: true
+        cell1:
+          cellDatabaseAccount: nova-cell1
+          cellDatabaseInstance: openstack-cell1
+          cellMessageBusInstance: rabbitmq-cell1
+          noVNCProxyServiceTemplate:
+            enabled: true
+            networkAttachments:
+            - internalapi
+            - ctlplane
+          hasAPIAccess: true
       secret: osp-secret
   manila:
     enabled: false

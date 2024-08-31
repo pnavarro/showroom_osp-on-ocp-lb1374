@@ -9,6 +9,8 @@ The bastion has a preconfigured NFS service that we will be using to store glanc
 ----
 mkdir /nfs/cinder
 chmod 777 /nfs/cinder
+mkdir /nfs/glance
+chmod 777 /nfs/glance
 ----
 
 == Configure NFS storage class
@@ -34,13 +36,6 @@ oc create -f nfs-storage.yaml
 [source,bash,role=execute]
 ----
 oc create secret generic cinder-nfs-config --from-file=nfs-cinder-conf
-----
-
-== Prepare the secret to place the server connection used by Glance
-
-[source,bash,role=execute]
-----
-oc create secret generic glance-cinder-config --from-file=glance-conf
 ----
 
 == Finally create the OpenStack control plane

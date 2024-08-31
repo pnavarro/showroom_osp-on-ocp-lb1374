@@ -1,4 +1,0 @@
-[default_backend]
-cinder_store_user_name = glance
-cinder_store_password = openstack
-cinder_store_project_name = service
