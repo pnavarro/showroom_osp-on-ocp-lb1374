@@ -4,8 +4,6 @@ From the *bastion server* access the Control Plane:
 
 [source,bash,role=execute]
 ----
-sudo -i
-ssh root@192.168.123.100
 oc rsh -n openstack openstackclient
 ----
 
