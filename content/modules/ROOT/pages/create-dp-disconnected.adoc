@@ -6,7 +6,7 @@ Change directory to the files:
 
 [source,bash,role=execute]
 ----
-cd ~/labrepo/content/files
+cd ~/labrepo/content/files/disconnected
 ----
 
 Apply the *network confguration*:
@@ -71,7 +71,7 @@ Every 2.0s: virsh domifaddr osp-compute0 --source agent                         
  -          -                    ipv6         ::1/128
  eth0       52:54:00:c0:0a:26    ipv4         172.22.0.202/24
  -          -                    ipv6         fe80::16:d083:92f4:f201/64
- eth1       52:54:00:e5:ce:09    ipv4         192.168.123.61/24
+ eth1       52:54:00:e5:ce:09    ipv4         192.168.123.73/24
  -          -                    ipv6         fe80::bfc0:e5db:a655:729f/64
 ----
 
@@ -91,7 +91,7 @@ There is no password.
 
 [source,bash,role=execute]
 ----
-ssh root@192.168.123.61
+ssh root@192.168.123.73
 ----
 
 [source,bash,role=execute]
@@ -101,7 +101,7 @@ nmcli co delete 'Wired connection 1'
 nmcli con add con-name "static-eth0" ifname eth0 type ethernet ip4 172.22.0.100/24 ipv4.dns "172.22.0.89"
 nmcli con up "static-eth0"
 nmcli co delete 'Wired connection 2'
-nmcli con add con-name "static-eth1" ifname eth1 type ethernet ip4 192.168.123.61/24 ipv4.dns "192.168.123.100" ipv4.gateway "192.168.123.1"
+nmcli con add con-name "static-eth1" ifname eth1 type ethernet ip4 192.168.123.73/24 ipv4.dns "192.168.123.100" ipv4.gateway "192.168.123.1"
 nmcli con up "static-eth1"
 ----
 
@@ -150,10 +150,10 @@ Change to Lab Repo
 
 [source,bash,role=execute]
 ----
-cd ~/labrepo/content/files
+cd ~/labrepo/content/files/disconnected
 ----
 
-Create Secret for ansible connection and nova migration of virtual machines
+Create Secret
 
 [source,bash,role=execute]
 ----
@@ -162,30 +162,68 @@ ssh-keygen -f ./id -t ecdsa-sha2-nistp521 -N ''
 oc create secret generic nova-migration-ssh-key --from-file=ssh-privatekey=id --from-file=ssh-publickey=id.pub -n openstack -o yaml | oc apply -f-
 ----
 
-Create a secret for the subscription manager and a secret for the Red Hat registry:
+In order to deploy in a disconnected/proxied/airgapped environment some configurations need to be entered into the openstack-dataplane-nodeset yaml file
+
+The main configurations are:
+*RPM repository locations ( redhat only support satellite for hosting disconnected  RPM repositories) already pre-entered in the *edpm_bootstrap_command* ansible variable.
+*Local registry credentials (login / certs) pre-entered in the *edpm_container_registry_logins* ansible variable.
+*The variable *edpm_image_overrides* pointing to the required images for the dataplane deployment.
+We can extract the actual list being used by the openstack operator by running:
 
 [source,bash,role=execute]
 ----
-echo -n "your_username" | base64
-echo -n "your_password" | base64
-[source,bash,role=execute]
+oc get openstackversions.core.openstack.org openstack-galera-network-isolation -oyaml
+----
+
+Edit the *osp-ng-dataplane-node-set-deploy.yaml* file and replace the string "uuid" by the uuid of your lab (`{guid}`) and make sure the container images signatures match the images from the *openstackversion* CR executed before:
+
+.Sample Output
+----
+[...]
+         edpm_container_registry_logins:
+          quay.apps.55nc6.dynamic.redhatworkshops.io:
+            quay_user: openstack
+         edpm_bootstrap_command: |
+           ex +'/BEGIN CERTIFICATE/,/END CERTIFICATE/p' <(echo | openssl s_client -showcerts -connect quay.apps.55nc6.dynamic.redhatworkshops.io:443) -scq > server.pem
+           sudo cp server.pem /etc/pki/ca-trust/source/anchors/
+           sudo cp server.pem /etc/pki/tls/certs/
+           sudo update-ca-trust
+           sudo rpm -Uvh http://satellite.ocp.example.com/pub/katello-ca-consumer-latest.noarch.rpm
+           sudo subscription-manager register --org="My_Organization" --activationkey="rhoso18" --serverurl satellite.ocp.example.com
+           sudo subscription-manager repos --disable=*
+           sudo subscription-manager release --set=9.4
+           sudo subscription-manager repos --enable=rhel-9-for-x86_64-highavailability-rpms --enable=rhel-9-for-x86_64-baseos-rpms --enable=rhel-9-for-x86_64-appstream-rpms --enable=rhel-9-for-x86_64-highavailability-rpms --enable=fast-datapath-for-rhel-9-x86_64-rpms --enable=rhoso-18.0-for-rhel-9-x86_64-rpms --enable=rhceph-7-tools-for-rhel-9-x86_64-rpms
+           sudo subscription-manager auto-attach
+         registry_url: quay.apps.55nc6.dynamic.redhatworkshops.io/quay_user
+         edpm_bootstrap_release_version_package: "rhoso-release"
+         edpm_ovn_controller_agent_image: "{{ registry_url }}/rhoso/openstack-ovn-controller-rhel9@sha256:5e8e082f30f876e67797ded5e9f34ac2c66e82149e3c4407f4f47e6affbcb217"
+         edpm_iscsid_image: "{{ registry_url }}/rhoso/openstack-iscsid-rhel9@sha256:98c4e08e30bb2997a051300d79a6f6aedda7f7d84d3ae250d70e4375f7a82941"
+         edpm_logrotate_crond_image: "{{ registry_url }}/rhoso/openstack-cron-rhel9@sha256:c7e41b77be1d3a4d4004b0843310691772a5183c526071ca9027da4b6d254e0f"
+         edpm_neutron_ovn_agent_image: "{{ registry_url }}/rhoso/openstack-neutron-metadata-agent-ovn-rhel9@sha256:b01c35ee7c7bfb03c91981cbed675628e2a145cb9b0fb123370d4679907736f4"
+         edpm_frr_image: "{{ registry_url }}/rhoso/openstack-frr-rhel9@sha256:52e705a0aee4273b1bb0c296e57f1d656aeefa82ac3f89cde6b41d41b7bdc0c0"
+         edpm_ovn_bgp_agent_image: "{{ registry_url }}/rhoso/openstack-ovn-bgp-agent-rhel9@sha256:c10037e3abfa97294acc69f5e01c938f92b22a67cf57105aa995f958f668e7a3"
+         edpm_multipathd_image: "{{ registry_url }}/rhoso/openstack-multipathd-rhel9@sha256:a082e7967269682ca50decc0418ef4422caeee93eec3a97c6d0c0f0c0720abe3"
+         edpm_neutron_sriov_image: "{{ registry_url }}/rhoso/openstack-neutron-sriov-agent-rhel9@sha256:0b844757e9fd8cf6e3e40a74dda188d286a1e038c7ad862f578fd666ddd0c36b"
+         edpm_telemetry_node_exporter_image: "{{ registry_url }}/openshift4/ose-prometheus-node-exporter-rhel9@sha256:e05f7defbb9b4a4590735f89ac4e823aef10fbc8626e41cfd84ddb7701c8a376"
+         edpm_neutron_metadata_agent_image: "{{ registry_url }}/rhoso/openstack-neutron-metadata-agent-ovn-rhel9@sha256:b01c35ee7c7bfb03c91981cbed675628e2a145cb9b0fb123370d4679907736f4"
+         edpm_nova_compute_image: "{{ registry_url }}/rhoso/openstack-nova-compute-rhel9@sha256:421ff6cc7cf790b03192107a85c0a3251df8a931b908fe1a4dcaa16b42d6e3fd"
+         edpm_telemetry_ceilometer_compute_image: "{{ registry_url }}/rhoso/openstack-ceilometer-compute-rhel9@sha256:b4169bc9ddf9e63622cffa552d0c4496f45c7a93953e97a7888b9a8eb869ee41"
+         edpm_telemetry_ceilometer_ipmi_image: "{{ registry_url }}/rhoso/openstack-ceilometer-ipmi-rhel9@sha256:5fb58f8d9c25449c512564bd4435baeeb9c39429e939a1c89d3b9342dbe65ea6"
+[...]
 ----
 
 [source,bash,role=execute]
 ----
-oc apply -f - <<EOF
-apiVersion: v1
-kind: Secret
-metadata:
-  name: subscription-manager
-data:
-  username: <base64 encoded subscription-manager username>
-  password: <base64 encoded subscription-manager password>
-EOF
-[source,bash,role=execute]
+vi osp-ng-dataplane-node-set-deploy.yaml
 ----
 
-Deploy the Dataplane
+Check that the output of this command is empty before proceeding:
+[source,bash,role=execute]
+----
+cat osp-ng-dataplane-node-set-deploy.yaml | grep "uuid"
+----
+
+Finally apply the OpenStack deployment and OpenStack nodeset yamls:
 
 [source,bash,role=execute]
 ----

@@ -7,7 +7,7 @@ Change to the `files` directory:
 
 [source,bash,role=execute]
 ----
-cd ~/labrepo/content/files
+cd ~/labrepo/content/files/disconnected
 ----
 
 Apply preconfigured yamls indivdually:

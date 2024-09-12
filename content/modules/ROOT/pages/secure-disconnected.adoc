@@ -1,0 +1,31 @@
+= Providing Secure Access to the Red Hat OpenStack Platform Services
+
+We will be utilizing a preconfigured yaml file (`files/osp-ng-ctlplane-secret.yaml`) to create a seperate base64 password for heat and one for the remaining services.
+
+Create the osp-secret Secret:
+
+[source,bash,role=execute]
+----
+oc create -f osp-ng-ctlplane-secret.yaml
+----
+
+Verify the *Secret* was created:
+
+[source,bash,role=execute]
+----
+oc describe secret osp-secret -n openstack
+----
+
+Create the libvirt Secret:
+
+[source,bash,role=execute]
+----
+oc create -f osp-ng-libvirt-secret.yaml
+----
+
+Verify the *Secret* was created:
+
+[source,bash,role=execute]
+----
+oc describe secret libvirt-secret -n openstack
+----

@@ -1,0 +1,349 @@
+# Install Satellite to host RPMS to the RHOSO compute nodes
+
+From the hypervisor, log in to the bastion
+
+[source,bash,role=execute]
+----
+sudo -i
+ssh root@192.168.123.100
+----
+
+On the **bastion host** modify the DNS configuration and DHCP configuration to host the satellite service
+
+## Configure satellite in DNS
+On the **bastion host**, overwrite *123.168.192.db* file to configure reverse resolution:
+[source,bash,role=execute]
+----
+cat <<EOF>> /var/named/123.168.192.db
+200      IN  PTR     satellite.ocp.example.com.
+EOF
+----
+
+Overwrite */var/named/ocp.example.com.db* file to configure satellite DNS resolving:
+
+[source,bash,role=execute]
+----
+cat <<EOF> /var/named/ocp.example.com.db
+@   IN  SOA      dns.example.com. dns.root.example.com. (
+                                                1001    ;Serial
+                                                3H      ;Refresh
+                                                15M     ;Retry
+                                                1W      ;Expire
+                                                1D      ;Minimum TTL
+                                                )
+
+;Name Server Information
+@      IN  NS      dns.example.com.
+
+;IP address of Name Server
+dns    IN  A       192.168.123.100
+
+;A - Record HostName To IP Address
+ocp4-bootstrap   IN  A       192.168.123.99
+ocp4-master1     IN  A       192.168.123.101
+ocp4-master2     IN  A       192.168.123.102
+ocp4-master3     IN  A       192.168.123.103
+ocp4-worker1     IN  A       192.168.123.104
+ocp4-worker2     IN  A       192.168.123.105
+ocp4-worker3     IN  A       192.168.123.106
+openshift        IN  A       192.168.123.100
+
+api              IN  A       192.168.123.10
+api-int          IN  A       192.168.123.10
+satellite        IN  A       192.168.123.200
+
+;Wildcard Entry for apps
+
+*.apps.ocp.example.com. 300 IN  A 192.168.123.11
+
+etcd-0  IN  A 192.168.123.101
+etcd-1  IN  A 192.168.123.102
+etcd-2  IN  A 192.168.123.103
+
+_etcd-server-ssl._tcp.ocp.example.com  86400 IN    SRV 0        10     2380 etcd-0.ocp.example.com.
+_etcd-server-ssl._tcp.ocp.example.com  86400 IN    SRV 0        10     2380 etcd-1.ocp.example.com.
+_etcd-server-ssl._tcp.ocp.example.com  86400 IN    SRV 0        10     2380 etcd-2.ocp.example.com.
+EOF
+----
+
+Restart the *named* service:
+
+[source,bash,role=execute]
+----
+systemctl restart named
+----
+
+## Configure satellite in DHCP
+
+Edit /etc/dhcp/dhcpd.conf
+[source,bash,role=execute]
+----
+vi /etc/dhcp/dhcpd.conf
+----
+
+Add the satellite host at the end of the file as in the example below:
+
+[source,bash,role=execute]
+----
+[...]
+host satellite {
+    dynamic;
+    hardware ethernet 52:54:00:00:00:20;
+    fixed-address 192.168.123.200;
+    option host-name "satellite.ocp.example.com";
+  }
+[...]
+}
+----
+
+Restart the *dhcpd* service:
+
+[source,bash,role=execute]
+----
+systemctl restart dhcpd
+----
+
+## Create the Satellite VM
+
+In the hypervisor:
+
+[source,bash,role=execute]
+----
+sudo -i
+cd /var/lib/libvirt/images
+----
+
+. Navigate to https://access.redhat.com/downloads/content/479/ver=/rhel---8/8.10/x86_64/product-software
+. Scroll-down to Red Hat Enterprise Linux 8.10 KVM Guest Image
+. Right click on "Download Now button"
+. Go to your hypervisor node
+
+[source,bash,role=execute]
+----
+curl -o rhel8-10.qcow2 "$URL_FROM_ACCESS_REDHAT_COM"
+----
+[source,bash,role=execute]
+----
+cp rhel8-10.qcow2 rhel8-guest.qcow2
+qemu-img info rhel8-guest.qcow2
+qemu-img resize rhel8-guest.qcow2 +90G
+chown -R qemu:qemu rhel8-*.qcow2
+virt-customize -a rhel8-guest.qcow2 --run-command 'growpart /dev/sda 3'
+virt-customize -a rhel8-guest.qcow2 --run-command 'xfs_growfs /'
+virt-customize -a rhel8-guest.qcow2 --root-password password:redhat
+virt-customize -a rhel8-guest.qcow2 --run-command 'systemctl disable cloud-init'
+virt-customize -a /var/lib/libvirt/images/rhel8-guest.qcow2 --ssh-inject root:file:/root/.ssh/id_rsa.pub
+virt-customize -a /var/lib/libvirt/images/rhel8-guest.qcow2 --selinux-relabel
+qemu-img create -f qcow2 -F qcow2 -b /var/lib/libvirt/images/rhel8-guest.qcow2 /var/lib/libvirt/images/satellite.qcow2
+virt-install --virt-type kvm --ram 20480 --vcpus 4 --cpu=host-passthrough --os-variant rhel8.4 --disk path=/var/lib/libvirt/images/satellite.qcow2,device=disk,bus=virtio,format=qcow2 --network network:ocp4-provisioning --network network:ocp4-net,mac="52:54:00:00:00:20" --boot hd,network --noautoconsole --vnc --name satellite --noreboot
+virsh start satellite
+----
+
+Watch until you have an IP from the 192.168.123.0/24:
+
+[source,bash,role=execute]
+----
+watch virsh domifaddr satellite --source agent
+----
+
+ssh into the satellite node. Configure the IP statically
+
+[source,bash,role=execute]
+----
+ssh root@192.168.123.200
+sudo hostnamectl set-hostname satellite.ocp.example.com
+nmcli co delete 'Wired connection 1'
+nmcli con add con-name "static-eth0" ifname eth0 type ethernet ip4 172.22.0.200/24
+nmcli con up "static-eth0"
+nmcli co delete 'Wired connection 2'
+nmcli con add con-name "static-eth1" ifname eth1 type ethernet ip4 192.168.123.200/24 ipv4.dns "192.168.123.100" ipv4.gateway "192.168.123.1"
+nmcli con up "static-eth1"
+----
+
+## Satellite installation
+
+Subscribe the satellite VM to the Satellite repos
+
+
+[source,bash,role=execute]
+----
+subscription-manager register --org="6340056"  --activationkey="train_the_trainers" 
+#subscription-manager register --username pnavarro@redhat.com --password "1amuntvalencian0"
+subscription-manager repos --disable "*"
+subscription-manager repos --enable=rhel-8-for-x86_64-baseos-rpms \
+--enable=rhel-8-for-x86_64-appstream-rpms \
+--enable=satellite-6.15-for-rhel-8-x86_64-rpms \
+--enable=satellite-maintenance-6.15-for-rhel-8-x86_64-rpms
+dnf module enable satellite:el8 -y
+dnf update -y
+dnf install satellite chrony -y
+systemctl enable --now chronyd
+----
+
+Proceed with the Satellite installation
+
+[source,bash,role=execute]
+----
+
+export LANG="en_US.UTF-8" 
+export LC_ALL="en_US.UTF-8" 
+export LC_CTYPE="en_US.UTF-8"
+satellite-installer --scenario satellite \
+--foreman-initial-organization "My_Organization" \
+--foreman-initial-location "My_Location" \
+--foreman-initial-admin-username admin \
+--foreman-initial-admin-password openstack \
+--foreman-proxy-dhcp false \
+--foreman-proxy-dns false \
+--foreman-proxy-tftp false
+----
+
+. Navigate to https://console.redhat.com/subscriptions
+. Click on manifests
+. Select your manifest with the Employee SKU (for example 50aa6725-141f-4b76-8b26-797802ee9e44)
+. Click export manifest and download it in your laptop
+
+From your workstation, copy the manifest.zip to the hypevisor host {bastion_public_hostname}:
+[source,bash,role=execute]
+----
+scp manifest.zip lab-user@$HYPERVISOR_IP:
+----
+From the hypervisor host:
+[source,bash,role=execute]
+----
+cd /home/lab-user
+scp manifest.zip root@192.168.123.200:
+----
+
+Import manifest from console.redhat.com
+[source,bash,role=execute]
+----
+hammer subscription upload \
+--file ~/manifest.zip \
+--organization "My_Organization"
+----
+
+Enable the following repos
+*rhel-9-for-x86_64-baseos-eus-rpms 
+*rhel-9-for-x86_64-appstream-eus-rpms 
+*rhel-9-for-x86_64-highavailability-eus-rpms 
+*fast-datapath-for-rhel-9-x86_64-rpms 
+*rhoso-18.0-for-rhel-9-x86_64-rpms
+*rhceph-7-tools-for-rhel-9-x86_64-rpms
+
+First list the repos:
+[source,bash,role=execute]
+----
+hammer repository-set list \
+--product "Red Hat Enterprise Linux for x86_64" \
+--organization "My_Organization"
+hammer repository-set list \
+--product "Red Hat Enterprise Linux High Availability for x86_64" \
+--organization "My_Organization"
+hammer repository-set list \
+--product "Red Hat OpenStack Services on OpenShift" \
+--organization "My_Organization"
+hammer repository-set list \
+--product "Red Hat Enterprise Linux Fast Datapath" \
+--organization "My_Organization"
+----
+
+Then enable the repos:
+
+[source,bash,role=execute]
+----
+hammer repository-set enable \
+--id 11049 \
+--releasever "9.4" \
+--basearch "x86_64" \
+--product "Red Hat Enterprise Linux for x86_64" \
+--organization "My_Organization"
+
+hammer repository-set enable \
+--id 11055 \
+--releasever "9.4" \
+--basearch "x86_64" \
+--product "Red Hat Enterprise Linux for x86_64" \
+--organization "My_Organization"
+
+hammer repository-set enable \
+--id 11075 \
+--releasever "9.4" \
+--basearch "x86_64" \
+--product "Red Hat Enterprise Linux High Availability for x86_64" \
+--organization "My_Organization"
+
+hammer repository-set enable \
+--id 11891 \
+--releasever "9.4" \
+--basearch "x86_64" \
+--product "Red Hat Enterprise Linux Fast Datapath" \
+--organization "My_Organization"
+
+hammer repository-set enable \
+--id 21485 \
+--releasever "9.4" \
+--basearch "x86_64" \
+--product "Red Hat OpenStack Services on OpenShift" \
+--organization "My_Organization"
+
+hammer repository-set enable \
+--id 20520 \
+--releasever "9.4" \
+--basearch "x86_64" \
+--product "Red Hat Enterprise Linux for x86_64" \
+--organization "My_Organization"
+----
+
+Sync the enabled repositories.
+
+[source,bash,role=execute]
+----
+ORG="My_Organization"
+
+for i in $(hammer --no-headers --csv repository list --organization $ORG --fields Id)
+do
+  hammer repository synchronize --id ${i} --organization $ORG --async
+done
+----
+
+Create content view:
+[source,bash,role=execute]
+----
+hammer repository list --organization "My_Organization"
+hammer content-view create \
+--description "rhoso18" \
+--name "rhoso18" \
+--organization "My_Organization" \
+--repository-ids 1,2,3,4,5,6
+----
+Publish content view:
+[source,bash,role=execute]
+----
+hammer content-view publish \
+--description "rhoso18" \
+--name "rhoso18" \
+--organization "My_Organization"
+----
+
+Create activation key
+[source,bash,role=execute]
+----
+hammer activation-key create \
+--name "rhoso18" \
+--unlimited-hosts \
+--description "RHOSO 18 activation key" \
+--lifecycle-environment "Library" \
+--content-view "rhoso18" \
+--organization "My_Organization"
+----
+
+Note the following commands as we will need to use them to register RHOSO compute nodes to satellite:
+
+[source,bash]
+----
+rpm -Uvh http://satellite.ocp.example.com/pub/katello-ca-consumer-latest.noarch.rpm
+subscription-manager register --org="My_Organization" --activationkey="rhoso18" --serverurl satellite.ocp.example.com
+subscription-manager auto-attach
+----
+
