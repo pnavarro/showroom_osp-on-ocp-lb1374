@@ -3,7 +3,6 @@ kind: OpenStackDataPlaneNodeSet
 metadata:
   name: scale-out-provisioned
 spec:
-  tlsEnabled: false
   env:
     - name: ANSIBLE_FORCE_COLOR
       value: "True"
@@ -11,7 +10,6 @@ spec:
       value: "2"
   services:
     - bootstrap
-    - download-cache
     - configure-network
     - validate-network
     - install-os
@@ -24,6 +22,8 @@ spec:
     - neutron-metadata
     - libvirt
     - nova
+    - telemetry
+  preProvisioned: true
   networkAttachments:
   - ctlplane
   baremetalSetTemplate: 
@@ -50,6 +50,10 @@ spec:
     ansibleSSHPrivateKeySecret: dataplane-ansible-ssh-private-key-secret
     ansible:
       ansibleUser: root
+      ansibleVarsFrom:
+      - prefix: subscription_manager_
+        secretRef:
+          name: subscription-manager
       ansibleVars:
          edpm_network_config_template: |
           ---
@@ -101,18 +105,9 @@ spec:
             - ip_netmask: {{ external_ip }}/{{ external_cidr }}
           {% endif %}
          edpm_network_config_hide_sensitive_logs: false
-
-         edpm_bootstrap_command: |
-           nmcli connection modify "System enp1s0" ipv4.never-default yes ipv6.never-default yes
-           nmcli connection up "System enp1s0"
-           curl -ko /etc/pki/ca-trust/source/anchors/demosat-ha.infra.demo.redhat.com.ca.crt  "https://demosat-ha.infra.demo.redhat.com/pub/katello-server-ca.crt"
-           update-ca-trust
-           yum install -y "https://demosat-ha.infra.demo.redhat.com/pub/katello-ca-consumer-latest.noarch.rpm"
-           subscription-manager register --org="Red_Hat_RHDP_Labs"  --activationkey="demosat-smt-b1374-1711111157" --serverurl=https://demosat-ha.infra.demo.redhat.com:8443/rhsm --baseurl=https://demosat-ha.infra.demo.redhat.com/pulp/repos  
-
-           sudo subscription-manager repos --disable=* 
-           subscription-manager repos --enable=rhceph-6-tools-for-rhel-9-x86_64-rpms --enable=rhel-9-for-x86_64-baseos-rpms --enable=rhel-9-for-x86_64-appstream-rpms --enable=rhel-9-for-x86_64-highavailability-rpms --enable=openstack-dev-preview-for-rhel-9-x86_64-rpms --enable=fast-datapath-for-rhel-9-x86_64-rpms
-
+          #
+          # These vars are for the network config templates themselves and are
+          # considered EDPM network defaults (for all computes).
          ctlplane_host_routes: []
          ctlplane_subnet_cidr: 24
          dns_search_domains: aio.example.com
@@ -147,3 +142,8 @@ spec:
          edpm_container_registry_logins:
           registry.redhat.io:
             6340056|osp-on-ocp-lb1374: "eyJhbGciOiJSUzUxMiJ9.eyJzdWIiOiI1Y2EzM2NjNGY4NWM0MmZmYTI3YmU5Y2UyMWI3M2JjMCJ9.GAxgg6Ht2oCS8zxHdwQw9kSD6RHeQOWYaDOcnQB5RElewQKvZmcNWi-YJdInJ5iXTE9r9tGVIN7fhFJL7f-hhL1PK2RVzZHD8qyfkMWcCEF5GUvp8rDX4GDrSkqjpUD44teWYkOy9Nb-3pOGzRIC7qs88uSxMz7hfil4I_HmjF4AAPIi4j3QZhp0lqrXzzf7vt6NLlizDFa2XTcPf_vQqReFu3A_5iWfy8XmLlC7QIixeVv2IE-ahRqM_UDCf5Dg3n2WpYvmP5jcSPFOLoT7sMimyeaPBna793boiX2swmeGHQ23tx1nFavCUavGv_cDRAvzVXCJ2NROTJ5unHiN7CXEbzm4Rg-65tY4D0YynTU8L6t0gYtXYYY9_wi1xNs-cShAmCMh1ySJn9nBcq4ydvH7eQnhSEvoK0bPsN_vWJCgOQBQyOdpTfRMU6piAy9H1zJ0KzsSzuKSS8fX0m9oN7narZPl34DTiEUTDeW8_SS6vJjHr_Q9O_X4mVeeQhH2ocN_4M9R6A89tmQ2jObuWm-cu1Yk-G6FSPUONhsoC_99nQnICS4mAuCWWDHxFY61hIrreVZBSH053MgfSaG2sqTb26MkxKWx-TP1sx18pb1xmo4IQEwILIbLlSPA3vafbrbQO5RQcm3UYKtYwev0vAlL5taXiTuLEyPscdzv0Sc"
+         edpm_bootstrap_command: |
+           subscription-manager register --username "{{ subscription_manager_username }}" --password "{{ subscription_manager_password }}"
+           sudo subscription-manager release --set=9.4
+           sudo subscription-manager repos --disable=*
+           sudo subscription-manager repos --enable=rhel-9-for-x86_64-baseos-eus-rpms --enable=rhel-9-for-x86_64-appstream-eus-rpms --enable=rhel-9-for-x86_64-highavailability-eus-rpms --enable=fast-datapath-for-rhel-9-x86_64-rpms --enable=rhoso-18.0-for-rhel-9-x86_64-rpms --enable=rhceph-7-tools-for-rhel-9-x86_64-rpms
