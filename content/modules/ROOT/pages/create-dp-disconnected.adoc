@@ -91,7 +91,7 @@ There is no password.
 
 [source,bash,role=execute]
 ----
-ssh root@192.168.123.61
+ssh root@192.168.123.62
 ----
 
 [source,bash,role=execute]
@@ -152,7 +152,7 @@ Change to Lab Repo
 cd ~/labrepo/content/files
 ----
 
-Create Secret for ansible connection and nova migration of virtual machines
+Create Secret
 
 [source,bash,role=execute]
 ----
@@ -161,30 +161,26 @@ ssh-keygen -f ./id -t ecdsa-sha2-nistp521 -N ''
 oc create secret generic nova-migration-ssh-key --from-file=ssh-privatekey=id --from-file=ssh-publickey=id.pub -n openstack -o yaml | oc apply -f-
 ----
 
-Create a secret for the subscription manager and a secret for the Red Hat registry:
+In order to deploy in a disconnected/proxied/airgapped environment some configurations need to be entered into the openstack-dataplane-nodeset yaml file: 
+The main configurations are:
+RPM repository locations ( redhat only support satellite for hosting disconnected  RPM repositories) already pre-entered in the *edpm_bootstrap_command* ansible variable.
+Local registry credentials (login / certs) pre-entered in the *edpm_container_registry_logins* ansible variable.
+*edpm_image_overrides* pointing to the required images for the dataplane deployment.
+We can extract the actual list being used by the openstack operator by running:
 
 [source,bash,role=execute]
 ----
-echo -n "your_username" | base64
-echo -n "your_password" | base64
-[source,bash,role=execute]
+oc get openstackversions.core.openstack.org openstack-galera-network-isolation -oyaml
 ----
+
+Edit the *osp-ng-dataplane-node-set-deploy.yaml* file and replace the string "uuid" by the uuid of your lab deployment and make sure the container images signatures match the images from the *openstackversion* CR executed before :
 
 [source,bash,role=execute]
 ----
-oc apply -f - <<EOF
-apiVersion: v1
-kind: Secret
-metadata:
-  name: subscription-manager
-data:
-  username: <base64 encoded subscription-manager username>
-  password: <base64 encoded subscription-manager password>
-EOF
-[source,bash,role=execute]
+vim osp-ng-dataplane-node-set-deploy.yaml
 ----
 
-Deploy the Dataplane
+Finally apply the OpenStack deployment and OpenStack nodeset yamls:
 
 [source,bash,role=execute]
 ----

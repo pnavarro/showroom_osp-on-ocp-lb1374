@@ -1,0 +1,393 @@
+# Install the Quay registry and mirror the OCP and RHOSO operators
+
+== Accessing the Cluster
+
+From the hypervisor, log in to the bastion
+
+[source,bash,role=execute]
+----
+sudo -i
+ssh root@192.168.123.100
+----
+
+Password is `redhat`.
+
+.Sample Output
+----
+[root@ocp4-bastion ~]
+----
+
+Make sure you can reach out to the OpenShift cluster, for instance, by listing the nodes in your cluster:
+
+[source,bash,role=execute]
+----
+oc get nodes
+----
+
+.Sample Output
+----
+NAME                           STATUS   ROLES                  AGE   VERSION
+ocp4-master1.aio.example.com   Ready    control-plane,master   26h   v1.25.16+9946c63
+ocp4-master2.aio.example.com   Ready    control-plane,master   26h   v1.25.16+9946c63
+ocp4-master3.aio.example.com   Ready    control-plane,master   26h   v1.25.16+9946c63
+ocp4-worker1.aio.example.com   Ready    worker                 25h   v1.25.16+9946c63
+ocp4-worker2.aio.example.com   Ready    worker                 25h   v1.25.16+9946c63
+ocp4-worker3.aio.example.com   Ready    worker                 25h   v1.25.16+9946c63
+----
+## Install the Quay operator
+
+Subscribe to the quay* Operator:
+
+[source,bash,role=execute]
+----
+cat << EOF | oc apply -f -
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  labels:
+    operators.coreos.com/quay-operator.openshift-operators: ""
+  name: quay-operator
+  namespace: openshift-operators
+spec:
+  channel: stable-3.10
+  installPlanApproval: Automatic
+  name: quay-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  startingCSV: quay-operator.v3.10.1
+EOF
+----
+
+Confirm the *quay* installplan is in the namespace:
+
+[source,bash,role=execute]
+----
+oc get installplan -n openshift-operators
+----
+
+Confirm the *quay* operator is installed:
+
+[source,bash,role=execute]
+----
+oc get clusterserviceversion -n openshift-operators \
+ -o custom-columns=Name:.metadata.name,Phase:.status.phase
+----
+
+Verify that quay pods are up and running by entering the following command:
+
+[source,bash,role=execute]
+----
+oc get pods -n openshift-operators
+----
+
+Repeat command until all pods are showing READY 1/1
+
+.Sample Output
+----
+NAME                                    READY   STATUS    RESTARTS   AGE
+quay-operator.v3.10.6-9455bf998-lvcjq   1/1     Running   0          14m
+----
+
+## Install the Quay registry
+
+On the **bastion host** create the **quay-enterprise** project:
+
+[source,bash,role=execute]
+----
+oc new-project quay-enterprise
+----
+
+Create **Quay YAML and Secret**. Remember you will need to change the string for the uuid of
+your demo instance which is: `{guid}`.
+
+[source,bash,role=execute]
+----
+cat << EOF >> config.yaml 
+SERVER_HOSTNAME: quay.apps.uuid.dynamic.redhatworkshops.io
+EOF
+----
+
+[source,bash,role=execute]
+----
+oc create secret generic --from-file config.yaml=./config.yaml config-bundle-secret
+----
+
+Create the **QuayRegistry YAML**, apply and wait for it to be ready
+
+[source,bash,role=execute]
+----
+cat << EOF >> quayregistry.yaml
+apiVersion: quay.redhat.com/v1
+kind: QuayRegistry
+metadata:
+  name: openstack-internal-registry
+  namespace: quay-enterprise
+spec:
+  configBundleSecret: config-bundle-secret
+  components:
+    - kind: clair
+      managed: false
+    - kind: horizontalpodautoscaler
+      managed: false
+    - kind: mirror
+      managed: false
+    - kind: monitoring
+      managed: false
+    - kind: quay
+      managed: true
+      overrides:
+        replicas: 1
+EOF
+----
+
+[source,bash,role=execute]
+----
+oc create -n quay-enterprise -f quayregistry.yaml
+----
+
+Wait until all pods are in running and ready state:
+
+[source,bash,role=execute]
+----
+oc get pods -n quay-enterprise -w
+----
+
+Which should look similar to below when ready:
+
+[source,bash,role=execute]
+----
+NAME                                                          READY   STATUS      RESTARTS   AGE
+openstack-internal-registry-clair-postgres-84b7b8d94d-klpl5   1/1     Running     0          3m35s
+openstack-internal-registry-quay-app-76f7784b4c-9ffzb         1/1     Running     0          3m5s
+openstack-internal-registry-quay-app-76f7784b4c-xrl2l         1/1     Running     0          3m5s
+openstack-internal-registry-quay-database-9654cf65d-mblkm     1/1     Running     0          3m35s
+openstack-internal-registry-quay-redis-c8d944c9d-ng2xp        1/1     Running     0          3m36s
+----
+
+Create the quay_user and private registry
+
+Navigate to quay.apps.`{guid}`.dynamic.redhatworkshops.io and create the **quay_user** user
+account with the password **openstack** and create a private repository called
+**openstack-operator**.
+
+Replace your uuid by `{guid}`
+
+Obtain the **self-signed certificate** for the **Quay Registry** and patch the cluster. Replace your uuid by `{guid}`
+
+[source,bash,role=execute]
+----
+ex +'/BEGIN CERTIFICATE/,/END CERTIFICATE/p' <(echo | openssl s_client -showcerts -connect quay.apps.uuid.dynamic.redhatworkshops.io:443) -scq > server.pem
+----
+[source,bash,role=execute]
+----
+oc create configmap registry-config --from-file=quay.apps.uuid.dynamic.redhatworkshops.io=server.pem -n openshift-config
+----
+[source,bash,role=execute]
+----
+oc patch image.config.openshift.io/cluster --patch '{"spec":{"additionalTrustedCA":{"name":"registry-config"}}}' --type=merge
+----
+[source,bash,role=execute]
+----
+oc patch image.config.openshift.io/cluster --type merge --patch '{"spec":{"registrySources":{"allowedRegistries":["docker-registry.upshift.redhat.com","registry.redhat.io","quay.io","registry-proxy.engineering.redhat.com","gcr.io","image-registry.openshift-image-registry.svc:5000","quay.apps.uuid.dynamic.redhatworkshops.io"],"insecureRegistries":["docker-registry.upshift.redhat.com","quay.apps.uuid.dynamic.redhatworkshops.io"]}}}'
+----
+
+Move the **certificates** to the correct location and update:
+
+[source,bash,role=execute]
+----
+sudo cp server.pem /etc/pki/ca-trust/source/anchors/
+sudo cp server.pem /etc/pki/tls/certs/
+sudo update-ca-trust
+----
+## Mirror RHOSO Operators and Images to the Quay registry:
+In this section we will use the oc-mirror command to get all of the required catalog operators to your environment the short list here is:
+The OpenStack operators
+*MetalLB
+*NMState operator
+Some persistence option for control plane persistence (storageClass) in our case
+*LVMS operator
+*LSO
+*ODF
+OC mirror can target a local registry if the env is proxied or a local file if fully air gapped
+For more info have a look at:
+https://docs.openshift.com/container-platform/4.16/installing/disconnected_install/about-installing-oc-mirror-v2.html#oc-mirror-workflows-fully-disconnected-v2_about-installing-oc-mirror-v2 
+
+Install oc-mirror on the bastion:
+
+[source,bash,role=execute]
+----
+wget https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/latest-4.16/oc-mirror.tar.gz
+tar xvzf oc-mirror.tar.gz
+chmod +x oc-mirror
+mv oc-mirror /usr/local/bin/.
+----
+
+. Prepare the secret for authenticating to registry.redhat.io:
++
+Login with your Red Hat account:
++
+[source,bash,role=execute]
+----
+podman login --username "6340056|osp-on-ocp-lb1374" --password "eyJhbGciOiJSUzUxMiJ9.eyJzdWIiOiI1Y2EzM2NjNGY4NWM0MmZmYTI3YmU5Y2UyMWI3M2JjMCJ9.GAxgg6Ht2oCS8zxHdwQw9kSD6RHeQOWYaDOcnQB5RElewQKvZmcNWi-YJdInJ5iXTE9r9tGVIN7fhFJL7f-hhL1PK2RVzZHD8qyfkMWcCEF5GUvp8rDX4GDrSkqjpUD44teWYkOy9Nb-3pOGzRIC7qs88uSxMz7hfil4I_HmjF4AAPIi4j3QZhp0lqrXzzf7vt6NLlizDFa2XTcPf_vQqReFu3A_5iWfy8XmLlC7QIixeVv2IE-ahRqM_UDCf5Dg3n2WpYvmP5jcSPFOLoT7sMimyeaPBna793boiX2swmeGHQ23tx1nFavCUavGv_cDRAvzVXCJ2NROTJ5unHiN7CXEbzm4Rg-65tY4D0YynTU8L6t0gYtXYYY9_wi1xNs-cShAmCMh1ySJn9nBcq4ydvH7eQnhSEvoK0bPsN_vWJCgOQBQyOdpTfRMU6piAy9H1zJ0KzsSzuKSS8fX0m9oN7narZPl34DTiEUTDeW8_SS6vJjHr_Q9O_X4mVeeQhH2ocN_4M9R6A89tmQ2jObuWm-cu1Yk-G6FSPUONhsoC_99nQnICS4mAuCWWDHxFY61hIrreVZBSH053MgfSaG2sqTb26MkxKWx-TP1sx18pb1xmo4IQEwILIbLlSPA3vafbrbQO5RQcm3UYKtYwev0vAlL5taXiTuLEyPscdzv0Sc" registry.redhat.io
+----
++
+Login with quay_user to the environment's registry or login to your own registry and create a secret. Replace the string uuid by your lab uuid: `{guid}`
++
+[source,bash,role=execute]
+----
+podman login --username "quay_user" --password "openstack" quay.apps.uuid.dynamic.redhatworkshops.io/quay_user
+----
+
+Make sure that the following file exists *$XDG_RUNTIME_DIR/containers/auth.json*:
+[source,bash,role=execute]
+----
+cat $XDG_RUNTIME_DIR/containers/auth.json
+----
+
+Create the image set. Replace the string uuid by your lab uuid: `{guid}`
+
+[source,bash,role=execute]
+----
+cat << EOF >> imageset-config.yaml
+kind: ImageSetConfiguration
+apiVersion: mirror.openshift.io/v1alpha2
+storageConfig:
+  registry:
+    imageURL: quay.apps.uuid.dynamic.redhatworkshops.io/quay_user/oc-mirror-metadata:4.16-v2
+    skipTLS: false
+mirror:
+  platform:
+    channels:
+    - name: stable-4.16
+      type: ocp
+  operators:
+  - catalog: registry.redhat.io/redhat/redhat-operator-index:v4.16
+    packages:
+    - name: openstack-ansibleee-operator
+      channels:
+      - name: stable-v1.0
+    - name: openstack-operator
+      channels:
+      - name: stable-v1.0
+    - name: openstack-baremetal-operator
+      channels:
+      - name: stable-v1.0
+    - name: kubernetes-nmstate-operator
+      channels:
+      - name: stable
+    - name: openshift-cert-manager-operator
+      channels:
+      - name: stable-v1
+    - name: metallb-operator
+      channels:
+      - name: stable
+    - name: odf-multicluster-orchestrator
+      channels:
+      - name: stable-4.16
+    - name: odf-csi-addons-operator
+      channels:
+      - name: stable-4.16
+    - name: odf-compose-operator
+      channels:
+      - name: stable-4.15
+    - name: odf-operator
+      channels:
+      - name: stable-4.16
+    - name: odf-prometheus-operator
+      channels:
+      - name: stable-4.16 
+    - name: kubevirt-hyperconverged
+      channels:
+      - name: stable
+    - name: local-storage-operator
+      channels:
+      - name: stable
+    - name: lvms-operator
+      channels:
+      - name: stable-4.16  
+  additionalImages:
+  - name: registry.redhat.io/ubi8/ubi:latest
+  helm: {}
+EOF
+----
+
+Execute the oc-mirror command. Replace the string uuid by your lab uuid: `{guid}`. Mirroring takes around 30-35 min:
+
+[source,bash,role=execute]
+----
+oc-mirror --config ./imageset-config.yaml --max-per-registry 3 docker://quay.apps.uuid.dynamic.redhatworkshops.io/quay_user --continue-on-error
+----
+
+After the mirroring concludes oc -f apply from the results directory ( usually /root/oc-mirror-workspace/results-<random_number>/) the catalogsource and image-content-source-policy yaml’s for example:
+
+Output:
+
+[source,bash]
+----
+[...]
+Rendering catalog image "quay.apps.s5qwh.dynamic.redhatworkshops.io/quay_user/redhat/redhat-operator-index:v4.16" with file-based catalog
+Writing image mapping to oc-mirror-workspace/results-1725990982/mapping.txt
+Writing CatalogSource manifests to oc-mirror-workspace/results-1725990982
+Writing ICSP manifests to oc-mirror-workspace/results-1725990982
+
+cd /root/oc-mirror-workspace/results-1725990982
+----
+
+Change directories to this folder( usually /root/oc-mirror-workspace/results-<random_number>/):
+[source,bash]
+----
+cd /root/oc-mirror-workspace/results-1725990982
+----
+
+
+Prepare the secret for injecting authentication details to the Catalog Source:
++
+Login with your Red Hat account and create a secret. Replace the string uuid by your lab uuid: `{guid}`:
++
+[source,bash,role=execute]
+----
+podman login --username "quay_user" --password "openstack" quay.apps.uuid.dynamic.redhatworkshops.io/quay_user --authfile auth.json
+----
+
++
+Create secret for the registry:
++
+[source,bash,role=execute]
+----
+oc create secret generic quay-auth-secret \
+ -n openshift-marketplace \
+ --from-file=.dockerconfigjson=auth.json \
+ --type=kubernetes.io/dockerconfigjson
+----
+
+
+Edit the catalog source to add the secret to authenticate to the registry:
+
+[source,bash,role=execute]
+----
+vi catalogSource-cs-redhat-operator-index.yaml
+----
+Example:
+
+[source,bash]
+----
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+  name: cs-redhat-operator-index
+  namespace: openshift-marketplace
+spec:
+  image: quay.apps.s5qwh.dynamic.redhatworkshops.io/quay_user/redhat/redhat-operator-index:v4.16
+  sourceType: grpc
+  secrets:
+    - "quay-auth-secret"
+----
+
+Apply the catalogsource yaml and the image content source poliy yaml:
+
+[source,bash]
+----
+oc apply -f catalogSource-cs-redhat-operator-index.yaml
+oc apply -f imageContentSourcePolicy.yaml
+----
+

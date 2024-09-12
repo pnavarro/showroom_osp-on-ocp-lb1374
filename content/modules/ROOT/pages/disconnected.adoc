@@ -1,0 +1,25 @@
+= Red Hat Openstack Services on OpenShift Installation - Disconnected environment
+
+In this lab, you will use the following infrastructure:
+
+* A 3 OCP controller + 3 OCP workers nodes 4.15 OCP cluster
+* A bastion host to access to the OCP environment
+* A RHEL 9.4 virtualised compute host
+
+In this lab, you will cover the following topics:
+
+* xref:satellite.adoc[Install and prepare Satellite]
+* xref:prereqs-disconnected.adoc[Perform Prerequisite Operations]
+* xref:install-operators-disconnected.adoc[Install the Red Hat OpenStack Platform Service Operators]
+* xref:registry.adoc[Install Quay and mirror the OCP and RHOSO operators]
+* xref:secure-disconnected.adoc[Configure Secure Access for OpenStack Services]
+* xref:network-isolation-disconnected.adoc[Prepare OCP for OpenStack Network Isolation]
+* xref:create-cp-disconnected.adoc[Create the Control Plane]
+* xref:create-dp-disconnected.adoc[Create the Data plane]
+* xref:access-disconnected.adoc[Access OpenStack]
+* xref:scale-out-disconnected.adoc[Scale Out your deployment using Cluster Baremetal Operator provisioned nodes]
+
+Within the lab environment, you will be able to copy and paste the specified commands into the CLI.
+For some steps you may also need to edit some of the commands from the  instructions.
+
+*Be sure to review all commands carefully both for functionality and syntax!*

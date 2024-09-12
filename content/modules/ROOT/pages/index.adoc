@@ -3,22 +3,10 @@
 Welcome to the Red Hat OpenStack Services on OpenShift (RHOSO) lab instructions.
 These instructions will guide you through the installation of the next generation of Red Hat's OpenStack product onto an existing OpenShift Cluster utilizing a bastion host and a single host for the data plane.
 
-In this lab, you will use the following infrastructure:
+You have two installation options: 
 
-* A 3 OCP controller + 3 OCP workers nodes 4.15 OCP cluster
-* A bastion host to access to the OCP environment
-* A RHEL 9.4 virtualised compute host
-
-In this lab, you will cover the following topics:
-
-* xref:prereqs.adoc[Perform Prerequisite Operations]
-* xref:install-operators.adoc[Install the Red Hat OpenStack Platform Service Operators]
-* xref:secure.adoc[Configure Secure Access for OpenStack Services]
-* xref:network-isolation.adoc[Prepare OCP for OpenStack Network Isolation]
-* xref:create-cp.adoc[Create the Control Plane]
-* xref:create-dp.adoc[Create the Data plane]
-* xref:access.adoc[Access OpenStack]
-* xref:scale-out.adoc[Scale Out your deployment using Cluster Baremetal Operator provisioned nodes]
+* xref:connected.adoc[Install RHOSO using CDN - Connected environment]
+* xref:disconnected.adoc[Install RHOSO using Satellite and Quay - Disconnected Environment]
 
 Within the lab environment, you will be able to copy and paste the specified commands into the CLI.
 For some steps you may also need to edit some of the commands from the  instructions.
