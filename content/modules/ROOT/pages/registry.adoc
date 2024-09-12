@@ -311,7 +311,9 @@ mirror:
 EOF
 ----
 
-Execute the oc-mirror command. Replace the string uuid by your lab uuid: `{guid}`. Mirroring takes around 30-35 min:
+Execute the oc-mirror command. Replace the string uuid by your lab uuid: `{guid}`.:
+
+WARNING: This can take around 30-35 min.
 
 [source,bash,role=execute]
 ----

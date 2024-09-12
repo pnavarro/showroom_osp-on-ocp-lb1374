@@ -3,7 +3,7 @@
 We will be using a preconfigured file (*files/osp-ng-ctlplane-deploy.yaml*) to create the control plane and at the same time enable the required services, configure the control plane network, and configure the service back ends.
 The bastion has a preconfigured NFS service that we will be using to store glance images and cinder volumes.
 
-== Create an NFS share for cinder and glace
+== Create an NFS share for cinder and glance
 
 [source,bash,role=execute]
 ----

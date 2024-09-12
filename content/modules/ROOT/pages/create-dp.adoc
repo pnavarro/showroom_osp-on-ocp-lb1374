@@ -96,6 +96,7 @@ ssh root@192.168.123.61
 
 [source,bash,role=execute]
 ----
+sudo hostnamectl set-hostname edpm-compute-0.aio.example.com
 nmcli co delete 'Wired connection 1'
 nmcli con add con-name "static-eth0" ifname eth0 type ethernet ip4 172.22.0.100/24 ipv4.dns "172.22.0.89"
 nmcli con up "static-eth0"
