@@ -168,7 +168,6 @@ Create a secret for the subscription manager and a secret for the Red Hat regist
 ----
 echo -n "your_username" | base64
 echo -n "your_password" | base64
-[source,bash,role=execute]
 ----
 
 [source,bash,role=execute]
@@ -182,7 +181,6 @@ data:
   username: <base64 encoded subscription-manager username>
   password: <base64 encoded subscription-manager password>
 EOF
-[source,bash,role=execute]
 ----
 
 Deploy the Dataplane
