@@ -1,0 +1,177 @@
+apiVersion: dataplane.openstack.org/v1beta1
+kind: OpenStackDataPlaneNodeSet
+metadata:
+  name: scale-out-provisioned
+spec:
+  env:
+    - name: ANSIBLE_FORCE_COLOR
+      value: "True"
+    - name: ANSIBLE_VERBOSITY
+      value: "2"
+  services:
+    - bootstrap
+    - configure-network
+    - validate-network
+    - install-os
+    - configure-os
+    - ssh-known-hosts
+    - run-os
+    - reboot-os
+    - install-certs
+    - ovn
+    - neutron-metadata
+    - libvirt
+    - nova
+    - telemetry
+  preProvisioned: true
+  networkAttachments:
+  - ctlplane
+  baremetalSetTemplate: 
+    bmhLabelSelector:
+      app: openstack
+    ctlplaneInterface: enp1s0
+    cloudUserName: cloud-admin
+  nodes:
+      edpm-compute-1:
+        hostName: edpm-compute-1
+        networks:
+        - name: ctlplane
+          subnetName: subnet1
+        - name: internalapi
+          subnetName: subnet1
+        - name: storage
+          subnetName: subnet1
+        - name: tenant
+          subnetName: subnet1
+        - name: external
+          subnetName: subnet1
+          defaultRoute: true
+  nodeTemplate:
+    ansibleSSHPrivateKeySecret: dataplane-ansible-ssh-private-key-secret
+    ansible:
+      ansibleUser: root
+      ansibleVars:
+         edpm_network_config_template: |
+          ---
+          {% set mtu_list = [ctlplane_mtu] %}
+          {% for network in nodeset_networks %}
+          {{ mtu_list.append(lookup('vars', networks_lower[network] ~ '_mtu')) }}
+          {%- endfor %}
+          {% set min_viable_mtu = mtu_list | max %}
+          network_config:
+          - type: ovs_bridge
+            name: {{ neutron_physical_bridge_name }}
+            mtu: {{ min_viable_mtu }}
+            use_dhcp: false
+            dns_servers: {{ ctlplane_dns_nameservers }}
+            domain: {{ dns_search_domains }}
+            addresses:
+            - ip_netmask: {{ ctlplane_ip }}/{{ ctlplane_cidr }}
+            routes: {{ ctlplane_host_routes }}
+            members:
+            - type: interface
+              name: nic1
+              mtu: {{ min_viable_mtu }}
+              # force the MAC address of the bridge to this interface
+              primary: true
+          {% for network in nodeset_networks if network != 'external' %}
+            - type: vlan
+              mtu: {{ lookup('vars', networks_lower[network] ~ '_mtu') }}
+              vlan_id: {{ lookup('vars', networks_lower[network] ~ '_vlan_id') }}
+              addresses:
+              - ip_netmask:
+                  {{ lookup('vars', networks_lower[network] ~ '_ip') }}/{{ lookup('vars', networks_lower[network] ~ '_cidr') }}
+              routes: {{ lookup('vars', networks_lower[network] ~ '_host_routes') }}
+          {% endfor %}
+          {% if 'external' in nodeset_networks %}
+          - type: ovs_bridge
+            name: br-ex
+            dns_servers: {{ ctlplane_dns_nameservers }}
+            domain: {{ dns_search_domains }}
+            use_dhcp: false
+            members:
+            - type: interface
+              name: nic2
+              mtu: 1500
+              primary: true
+            routes:
+            - ip_netmask: 0.0.0.0/0
+              next_hop: {{ external_gateway_ip | default('192.168.123.1') }}
+            addresses:
+            - ip_netmask: {{ external_ip }}/{{ external_cidr }}
+          {% endif %}
+         edpm_network_config_hide_sensitive_logs: false
+
+         edpm_bootstrap_command: |
+           nmcli connection modify "System enp1s0" ipv4.never-default yes ipv6.never-default yes
+           nmcli connection up "System enp1s0"
+           curl -ko /etc/pki/ca-trust/source/anchors/demosat-ha.infra.demo.redhat.com.ca.crt  "https://demosat-ha.infra.demo.redhat.com/pub/katello-server-ca.crt"
+           update-ca-trust
+           yum install -y "https://demosat-ha.infra.demo.redhat.com/pub/katello-ca-consumer-latest.noarch.rpm"
+           subscription-manager register --org="Red_Hat_RHDP_Labs"  --activationkey="demosat-smt-b1374-1711111157" --serverurl=https://demosat-ha.infra.demo.redhat.com:8443/rhsm --baseurl=https://demosat-ha.infra.demo.redhat.com/pulp/repos  
+
+           sudo subscription-manager repos --disable=* 
+           subscription-manager repos --enable=rhceph-6-tools-for-rhel-9-x86_64-rpms --enable=rhel-9-for-x86_64-baseos-rpms --enable=rhel-9-for-x86_64-appstream-rpms --enable=rhel-9-for-x86_64-highavailability-rpms --enable=openstack-dev-preview-for-rhel-9-x86_64-rpms --enable=fast-datapath-for-rhel-9-x86_64-rpms
+
+         ctlplane_host_routes: []
+         ctlplane_subnet_cidr: 24
+         dns_search_domains: aio.example.com
+         ctlplane_vlan_id: 1
+         ctlplane_mtu: 1500
+         external_mtu: 1500
+         external_vlan_id: 44
+         external_cidr: '24'
+         external_host_routes: []
+         internalapi_mtu: 1500
+         internalapi_vlan_id: 20
+         internalapi_cidr: '24'
+         internalapi_host_routes: []
+         storage_mtu: 1500
+         storage_vlan_id: 21
+         storage_cidr: '24'
+         storage_host_routes: []
+         tenant_mtu: 1500
+         tenant_vlan_id: 22
+         tenant_cidr: '24'
+         tenant_host_routes: []
+         neutron_physical_bridge_name: br-osp
+         # name of the first network interface on the compute node:
+         neutron_public_interface_name: eth0
+         # edpm_nodes_validation
+         edpm_nodes_validation_validate_controllers_icmp: false
+         edpm_nodes_validation_validate_gateway_icmp: false
+         gather_facts: false
+         enable_debug: false
+         edpm_sshd_allowed_ranges: ['172.22.0.0/16']
+         edpm_podman_buildah_login: true
+         edpm_container_registry_logins:
+          quay.apps.uuid.dynamic.redhatworkshops.io:
+            quay_user: openstack
+         edpm_bootstrap_command: |
+           nmcli connection modify "System enp1s0" ipv4.never-default yes ipv6.never-default yes
+           nmcli connection up "System enp1s0"
+           ex +'/BEGIN CERTIFICATE/,/END CERTIFICATE/p' <(echo | openssl s_client -showcerts -connect quay.apps.uuid.dynamic.redhatworkshops.io:443) -scq > server.pem
+           sudo cp server.pem /etc/pki/ca-trust/source/anchors/
+           sudo cp server.pem /etc/pki/tls/certs/
+           sudo update-ca-trust
+           sudo rpm -Uvh http://satellite.ocp.example.com/pub/katello-ca-consumer-latest.noarch.rpm
+           sudo subscription-manager register --org="My_Organization" --activationkey="rhoso18" --serverurl satellite.ocp.example.com
+           sudo subscription-manager repos --disable=*
+           sudo subscription-manager release --set=9.4
+           sudo subscription-manager repos --enable=rhel-9-for-x86_64-highavailability-rpms --enable=rhel-9-for-x86_64-baseos-rpms --enable=rhel-9-for-x86_64-appstream-rpms --enable=rhel-9-for-x86_64-highavailability-rpms --enable=fast-datapath-for-rhel-9-x86_64-rpms --enable=rhoso-18.0-for-rhel-9-x86_64-rpms --enable=rhceph-7-tools-for-rhel-9-x86_64-rpms
+           sudo subscription-manager auto-attach
+         registry_url: quay.apps.uuid.dynamic.redhatworkshops.io/quay_user
+         edpm_bootstrap_release_version_package: "rhoso-release"
+         edpm_ovn_controller_agent_image: "{{ registry_url }}/rhoso/openstack-ovn-controller-rhel9@sha256:5e8e082f30f876e67797ded5e9f34ac2c66e82149e3c4407f4f47e6affbcb217"
+         edpm_iscsid_image: "{{ registry_url }}/rhoso/openstack-iscsid-rhel9@sha256:98c4e08e30bb2997a051300d79a6f6aedda7f7d84d3ae250d70e4375f7a82941"
+         edpm_logrotate_crond_image: "{{ registry_url }}/rhoso/openstack-cron-rhel9@sha256:c7e41b77be1d3a4d4004b0843310691772a5183c526071ca9027da4b6d254e0f"
+         edpm_neutron_ovn_agent_image: "{{ registry_url }}/rhoso/openstack-neutron-metadata-agent-ovn-rhel9@sha256:b01c35ee7c7bfb03c91981cbed675628e2a145cb9b0fb123370d4679907736f4"
+         edpm_frr_image: "{{ registry_url }}/rhoso/openstack-frr-rhel9@sha256:52e705a0aee4273b1bb0c296e57f1d656aeefa82ac3f89cde6b41d41b7bdc0c0"
+         edpm_ovn_bgp_agent_image: "{{ registry_url }}/rhoso/openstack-ovn-bgp-agent-rhel9@sha256:c10037e3abfa97294acc69f5e01c938f92b22a67cf57105aa995f958f668e7a3"
+         edpm_multipathd_image: "{{ registry_url }}/rhoso/openstack-multipathd-rhel9@sha256:a082e7967269682ca50decc0418ef4422caeee93eec3a97c6d0c0f0c0720abe3"
+         edpm_neutron_sriov_image: "{{ registry_url }}/rhoso/openstack-neutron-sriov-agent-rhel9@sha256:0b844757e9fd8cf6e3e40a74dda188d286a1e038c7ad862f578fd666ddd0c36b"
+         edpm_telemetry_node_exporter_image: "{{ registry_url }}/openshift4/ose-prometheus-node-exporter-rhel9@sha256:e05f7defbb9b4a4590735f89ac4e823aef10fbc8626e41cfd84ddb7701c8a376"
+         edpm_neutron_metadata_agent_image: "{{ registry_url }}/rhoso/openstack-neutron-metadata-agent-ovn-rhel9@sha256:b01c35ee7c7bfb03c91981cbed675628e2a145cb9b0fb123370d4679907736f4"
+         edpm_nova_compute_image: "{{ registry_url }}/rhoso/openstack-nova-compute-rhel9@sha256:421ff6cc7cf790b03192107a85c0a3251df8a931b908fe1a4dcaa16b42d6e3fd"
+         edpm_telemetry_ceilometer_compute_image: "{{ registry_url }}/rhoso/openstack-ceilometer-compute-rhel9@sha256:b4169bc9ddf9e63622cffa552d0c4496f45c7a93953e97a7888b9a8eb869ee41"
+         edpm_telemetry_ceilometer_ipmi_image: "{{ registry_url }}/rhoso/openstack-ceilometer-ipmi-rhel9@sha256:5fb58f8d9c25449c512564bd4435baeeb9c39429e939a1c89d3b9342dbe65ea6"

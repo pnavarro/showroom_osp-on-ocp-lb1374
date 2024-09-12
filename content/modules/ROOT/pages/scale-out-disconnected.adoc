@@ -40,14 +40,13 @@ The new host should be visible:
 
 Back on the **bastion** server:
 
-. Clone the Files Repo
+. Change to the the Files Repo
 +
 In the bastion terminal, clone the repo and change directory to the files that we will used later in the lab
 +
 [source,bash,role=execute]
 ----
-git clone https://github.com/pnavarro/showroom_osp-on-ocp-advanced.git labrepo
-cd labrepo/content/files
+cd labrepo/content/files/disconnected
 ----
 
 Create a Baremetal Host to prepare
