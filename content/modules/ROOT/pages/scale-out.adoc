@@ -124,6 +124,20 @@ Node will move from available to provisioning:
 oc get bmh -n openshift-machine-api
 ----
 
+.Sample Output
+[source,bash]
+----
+NAME 
+NAME           STATE          CONSUMER                   ONLINE   ERROR   AGE
+master1        provisioned    ocp-df4n7-master-0         true             3h48m
+master2        provisioned    ocp-df4n7-master-1         true             3h48m
+master3        provisioned    ocp-df4n7-master-2         true             3h48m
+osp-compute1   provisioning   scale-out-provisioned      true             48m
+worker1        provisioned    ocp-df4n7-worker-0-bxrmx   true             3h48m
+worker2        provisioned    ocp-df4n7-worker-0-z57z6   true             3h48m
+worker3        provisioned    ocp-df4n7-worker-0-f5ndx   true             3h48m
+----
+
 After node provioning the deployment will proceed similarly as in the pre-provisoned section:
 
 You can view the Ansible logs while the deployment executes:
