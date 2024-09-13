@@ -1,0 +1,48 @@
+# Collecting diagnostic information for Support
+
+Use the Red Hat OpenStack Services on OpenShift (RHOSO) must-gather tool to collect diagnostic information about your Red Hat OpenShift Container Platform (RHOCP) cluster, including the RHOSO control plane and the deployed RHOSO services. Use the RHOCP sosreport tool to collect diagnostic information about your RHOSO data plane
+
+## Collecting data on the RHOSO control plane
+
+. Navigate to the directory where you want to store the must-gather data.
+. Pass one or more images or image streams to the must-gather tool to specify the data to collect. 
+On the *bastion* use the following command gathers both the default cluster data and the information that is specific to the deployed RHOSO control plane:
+
+[source,bash,role=execute]
+----
+oc adm must-gather \
+ --image-stream=openshift/must-gather \ 1
+ --image=registry.redhat.io/rhoso-operators/openstack-must-gather-rhel9:1.0
+----
+
+## Collecting data on the RHOSO data plane
+
+From the *hypervisor*, access to the *edpm-compute1* hypervisor:
+
+[source,bash,role=execute]
+----
+ssh -i /root/.ssh/id_rsa_compute cloud-admin@172.22.0.101
+----
+
+Install and execute sosreport:
+
+[source,bash,role=execute]
+----
+sudo dnf install -y sos
+sudo sos report
+----
+
+Sample Output:
+[source,bash,role=execute]
+----
+Your sosreport has been generated and saved in:
+        /var/tmp/sosreport-edpm-compute-1-2024-09-13-uoozzbg.tar.xz
+
+ Size   12.54MiB
+ Owner  root
+ sha256 7c2416d833f7accf0fe1dc3dc752aacec30e492fada78947dd2ebce590cffa54
+
+Please send this file to your support representative.
+----
+
+

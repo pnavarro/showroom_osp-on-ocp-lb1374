@@ -42,7 +42,7 @@ Back on the **bastion** server:
 
 Clone the Files Repo
 +
-In the bastion terminal, clone the repo and change directory to the files that we will used later in the lab
+In the bastion terminal, make sure that you are in lab yamls directory:
 +
 [source,bash,role=execute]
 ----
@@ -67,9 +67,9 @@ Wait until the baremal host is in Available state. The bmh will move first to re
 ----
 oc get bmh -n openshift-machine-api -w
 ----
-Desired output:
+Sample output:
 
-[source,bash,role=execute]
+[source,bash]
 ----
 oc get bmh -n openshift-machine-api
 NAME           STATE                    CONSUMER                   ONLINE   ERROR   AGE
@@ -238,9 +238,9 @@ Output
 [...]
 ----
 
-Finally, you can ssh to the edp-compute1 using the address from the previous output:
+Finally, in case of need you can ssh to the edp-compute1 using the address from the previous output:
 
-[source,bash,role=execute]
+[source,bash]
 ----
 ssh -i /root/.ssh/id_rsa_compute cloud-admin@172.22.0.101
 ----

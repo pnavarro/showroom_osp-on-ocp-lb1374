@@ -1,0 +1,148 @@
+= Scaling In your deployment by removing the pre-provisioned node
+
+The procedure for removing edpm nodes from dataplane involves some manual cleanup steps after evacuation of workload.
+
+For edpm compute nodes removal following steps should be performed. In this section we will remote the pre-provisioned compute with hostname *edpm-compute-0* 
+
+The first step is to migrate all existing virtual machines off the hypervisor that you plan to remove.
+
+== Disable nova-compute service
+
+On the *bastion*, execute:
+
+[source,bash,role=execute]
+----
+
+oc rsh openstackclient openstack compute service list
+----
+
+[source,bash]
+----
++--------------------------------------+----------------+------------------------+----------+---------+-------+----------------------------+
+| ID                                   | Binary         | Host                   | Zone     | Status  | State | Updated At                 |
++--------------------------------------+----------------+------------------------+----------+---------+-------+----------------------------+
+| 11105d9b-9ef7-4d6f-8d17-6eb8db175d76 | nova-conductor | nova-cell1-conductor-0 | internal | enabled | up    | 2024-02-01T03:59:42.000000 |
+| 31e2ee14-a124-4e02-b11d-87c2cdca3c56 | nova-compute   | edpm-compute-1         | nova     | enabled | up    | 2024-02-01T03:59:38.000000 |
+| bd031e6e-89d8-4839-b345-5f124ec4c07e | nova-compute   | edpm-compute-0         | nova     | enabled | up    | 2024-02-01T03:59:37.000000 |
+| 8a4622c3-0fb8-498a-81d8-a9c23c0be5fc | nova-conductor | nova-cell0-conductor-0 | internal | enabled | up    | 2024-02-01T03:59:37.000000 |
+| 5ad386ec-ac2d-4238-a671-d9402432d326 | nova-scheduler | nova-scheduler-0       | internal | enabled | up    | 2024-02-01T03:59:38.000000 |
++--------------------------------------+----------------+------------------------+----------+---------+-------+----------------------------+
+----
+
+Disable the edpm-compute-0 so that this compute node can't be scheduled:
+
+[source,bash,role=execute]
+----
+oc rsh openstackclient openstack compute service set edpm-compute-1.ctlplane.aio.example.com nova-compute --disable
+----
+
+== Stop ovn and nova-compute containers
+
+From the *hypervisor* node, ssh to the edpm node to be removed and stop the containers:
+
+[source,bash,role=execute]
+----
+
+ssh root@172.22.0.100
+----
+
+Stop the *edpm_ovn_controller*, *edpm_ovn_metadata_agent* and *edpm_nova_compute* service
+
+[source,bash,role=execute]
+----
+sudo systemctl stop edpm_ovn_controller
+
+sudo systemctl stop edpm_ovn_metadata_agent
+
+sudo systemctl stop edpm_nova_compute
+----
+
+== Delete network agents
+
+Delete the agents for the compute nodes to be removed.
+
+[source,bash,role=execute]
+----
+oc rsh openstackclient openstack network agent list
+
++--------------------------------------+------------------------------+-----------------------------------------+-------------------+-------+-------+----------------+
+| ID                                   | Agent Type                   | Host                                    | Availability Zone | Alive | State | Binary         |
++--------------------------------------+------------------------------+-----------------------------------------+-------------------+-------+-------+----------------+
+| 1c5ada5e-4d97-41d6-a3a3-5f5083ca3a79 | OVN Controller Gateway agent | ocp4-worker3.aio.example.com            |                   | :-)   | UP    | ovn-controller |
+| 5d625cff-ff88-4355-961b-2d4a996449d8 | OVN Controller Gateway agent | ocp4-worker1.aio.example.com            |                   | :-)   | UP    | ovn-controller |
+| eb7c9e19-9d65-47cb-8616-2bf9cdeb2231 | OVN Controller Gateway agent | ocp4-worker2.aio.example.com            |                   | :-)   | UP    | ovn-controller |
+| 1de35214-b65f-481f-8a23-efda8531014f | OVN Controller agent         | edpm-compute-0.ctlplane.aio.example.com |                   | :-)   | UP    | ovn-controller |
+| e273d279-cd79-4605-954f-6bfac81b874a | OVN Controller agent         | edpm-compute-1.ctlplane.aio.example.com |                   | :-)   | UP    | ovn-controller |
++--------------------------------------+------------------------------+-----------------------------------------+-------------------+-------+-------+----------------+
+----
+
+[source,bash,role=execute]
+----
+oc rsh openstackclient openstack network agent delete 1de35214-b65f-481f-8a23-efda8531014f
+----
+
+== Delete nova-compute service
+
+Delete `nova-compute` service for the removed node.
+
+[source,bash,role=execute]
+----
+
+oc rsh openstackclient openstack compute service list
+----
+
+[source,bash]
+----
++--------------------------------------+----------------+------------------------+----------+---------+-------+----------------------------+
+| ID                                   | Binary         | Host                   | Zone     | Status  | State | Updated At                 |
++--------------------------------------+----------------+------------------------+----------+---------+-------+----------------------------+
+| 11105d9b-9ef7-4d6f-8d17-6eb8db175d76 | nova-conductor | nova-cell1-conductor-0 | internal | enabled | up    | 2024-02-01T03:59:42.000000 |
+| 31e2ee14-a124-4e02-b11d-87c2cdca3c56 | nova-compute   | edpm-compute-1         | nova     | enabled | up    | 2024-02-01T03:59:38.000000 |
+| bd031e6e-89d8-4839-b345-5f124ec4c07e | nova-compute   | edpm-compute-0         | nova     | enabled | up    | 2024-02-01T03:59:37.000000 |
+| 8a4622c3-0fb8-498a-81d8-a9c23c0be5fc | nova-conductor | nova-cell0-conductor-0 | internal | enabled | up    | 2024-02-01T03:59:37.000000 |
+| 5ad386ec-ac2d-4238-a671-d9402432d326 | nova-scheduler | nova-scheduler-0       | internal | enabled | up    | 2024-02-01T03:59:38.000000 |
++--------------------------------------+----------------+------------------------+----------+---------+-------+----------------------------+
+----
+
+[source,bash,role=execute]
+----
+
+oc rsh openstackclient openstack compute service delete 6d1e51a8-bf0d-4ae6-a54e-9c42e81f0e03
+----
+
+Check that the hypervisor list it doesn't list the removed hypervisor:
+
+[source,bash,role=execute]
+----
+oc rsh openstackclient openstack hypervisor list
++--------------------------------------+-----------------------------------------+-----------------+--------------+-------+
+| ID                                   | Hypervisor Hostname                     | Hypervisor Type | Host IP      | State |
++--------------------------------------+-----------------------------------------+-----------------+--------------+-------+
+| 7786670f-04f7-429c-a5ef-c5358e14cd3a | edpm-compute-1.ctlplane.aio.example.com | QEMU            | 172.22.0.101 | up    |
++--------------------------------------+-----------------------------------------+-----------------+--------------+-------+
+----
+
+== Patch OpenStackDataPlaneNodeSet to remove node
+
+Once the cleanup is complete, patch `OpenStackDataPlaneNodeSet` CR to remove the
+nodes from the `nodes` section.
+
+[source,bash,role=execute]
+----
+
+oc patch openstackdataplanenodeset/openstack-edpm --type json --patch '[{ "op": "remove", "path": "/spec/nodes/edpm-compute-0" }]'
+openstackdataplanenodeset.dataplane.openstack.org/openstack-edpm patched
+----
+
+== Scaling In by removing a NodeSet
+
+If a full `OpenStackDataPlaneNodeSet` has to be removed, steps mentioned
+above to disable `nova-compute` services, stop the `ovn` and `nova-compute`
+containers on nodes, delete network agents and delete `nova-compute` services
+should be done for each compute. Finally the `OpenStackDataPlaneNodeSet` CR can
+be deleted. If this `OpenStackDataPlaneNodeSet` is the only one listing the
+`ssh-known-hosts` service, then this service needs to be added to one or more
+of the remaining `OpenStackDataPlaneNodeSets`. To remove the ssh host keys of
+the removed nodes of this `OpenStackDataPlaneNodeSet` from other nodes a new
+`OpenStackDataPlaneDeployment` needs to be created that points to all the
+remaining `OpenStackDataPlaneNodeSets`.

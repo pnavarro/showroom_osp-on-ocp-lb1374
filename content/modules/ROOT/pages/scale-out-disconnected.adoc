@@ -230,9 +230,9 @@ Output
 [...]
 ----
 
-Finally, you can ssh to the edp-compute1 using the address from the previous output:
+Finally, in case of need you can ssh to the edp-compute1 using the address from the previous output:
 
-[source,bash,role=execute]
+[source,bash]
 ----
 ssh -i /root/.ssh/id_rsa_compute cloud-admin@172.22.0.101
 ----

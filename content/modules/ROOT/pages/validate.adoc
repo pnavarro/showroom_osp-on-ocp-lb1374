@@ -1,0 +1,101 @@
+# Validating the deployed cloud
+
+## Install the test-operator
+
+Install the test-operator in the openstack-operators project.
+
+Ensure that you are in the OpenStack project:
+
+[source,bash,role=execute]
+----
+oc project openstack
+----
+
+Create a subscription.yaml file:
+
+[source,bash,role=execute]
+----
+cat << EOF | oc apply -f -
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: test-operator
+  namespace: openstack-operators
+spec:
+  name: test-operator
+  source: openstack-operator-index
+  sourceNamespace: openstack-operators
+EOF
+----
+
+When the test-operator-controller-manager pod successfully spawns and the pod is running, you can communicate with the operator using the custom resources (CRs) that the test-operator accepts:
+
+[source,bash,role=execute]
+----
+oc get pods -n openstack-operators
+----
+
+## Execute Tempest tests
+
+In the bastion terminal, make sure that you are in lab yamls directory:
++
+[source,bash,role=execute]
+----
+cd labrepo/content/files
+----
+
+Apply the *test-v1beta1-tempest* file:
+
+[source,bash,role=execute]
+----
+oc apply -f test-v1beta1-tempest.yaml
+----
+
+## Access to the test pods
+
+You can access the Tempest logs, for example for a test that successfully completed, or to troubleshoot a pod that has failed.
+
+Get the name and status of the relevant pod:
+
+[source,bash,role=execute]
+----
+oc get pods | grep -i tempest-tests
+----
+
+Get the logs. Replace <pod_name> with the name of the pod that you got in the previous step:
+[source,bash,role=execute]
+----
+oc logs <pod_name>
+----
+
+### Getting logs from inside the pod
+
+You can access the Tempest logs, for example, for a test that successfully completed, or to troubleshoot a pod that has failed. You can access specific and more detailed Tempest logs from inside the pod.
+
+Get the name and status of the relevant pod:
+
+[source,bash,role=execute]
+----
+oc get pods | grep -i tempest-tests
+----
+
+Access the pod.Replace <pod_name> with the name of the pod that you got in the previous step:
+[source,bash,role=execute]
+----
+oc debug <pod_name>
+----
+
+View available log files inside the pod:
+[source,bash,role=execute]
+----
+sh-5.1$ ls -lah /var/lib/tempest/external_files
+----
+
+View available log files in the required directory:
+
+[source,bash,role=execute]
+----
+sh-5.1$ ls -lah /var/lib/tempest/external_files/<tempest-tests>
+----
+
+For more information consult the official documentation: https://docs.redhat.com/en/documentation/red_hat_openstack_services_on_openshift/18.0/html-single/validating_and_troubleshooting_the_deployed_cloud/index#using-tempest-operator_diagnostics
