@@ -2,8 +2,8 @@
 
 == Access Your Lab Environment
 
-During this lab you will be instructed to ssh to your hypervisor at IP address {bastion_public_hostname}.
-Use username `{bastion_ssh_user_name}` and password `{bastion_ssh_password}`.
+During this lab you will be instructed to ssh to your hypervisor at IP address `{bastion_public_hostname}`.
+Use username `{bastion_ssh_user_name}` and password `{bastion_ssh_password}`. The uuid of your lab is: `{guid}`
 
 Once logged in the hypervisor you can access to the bastion at IP address `192.168.123.100` as `root` using password `redhat`.
 

@@ -26,25 +26,6 @@ oc new-project openstack-operators
 oc new-project openstack
 ----
 
-. Prepare the secret for installating the operators:
-+
-Login with your Red Hat account and create a secret:
-+
-[source,bash,role=execute]
-----
-podman login --username "6340056|osp-on-ocp-lb1374" --password "eyJhbGciOiJSUzUxMiJ9.eyJzdWIiOiI1Y2EzM2NjNGY4NWM0MmZmYTI3YmU5Y2UyMWI3M2JjMCJ9.GAxgg6Ht2oCS8zxHdwQw9kSD6RHeQOWYaDOcnQB5RElewQKvZmcNWi-YJdInJ5iXTE9r9tGVIN7fhFJL7f-hhL1PK2RVzZHD8qyfkMWcCEF5GUvp8rDX4GDrSkqjpUD44teWYkOy9Nb-3pOGzRIC7qs88uSxMz7hfil4I_HmjF4AAPIi4j3QZhp0lqrXzzf7vt6NLlizDFa2XTcPf_vQqReFu3A_5iWfy8XmLlC7QIixeVv2IE-ahRqM_UDCf5Dg3n2WpYvmP5jcSPFOLoT7sMimyeaPBna793boiX2swmeGHQ23tx1nFavCUavGv_cDRAvzVXCJ2NROTJ5unHiN7CXEbzm4Rg-65tY4D0YynTU8L6t0gYtXYYY9_wi1xNs-cShAmCMh1ySJn9nBcq4ydvH7eQnhSEvoK0bPsN_vWJCgOQBQyOdpTfRMU6piAy9H1zJ0KzsSzuKSS8fX0m9oN7narZPl34DTiEUTDeW8_SS6vJjHr_Q9O_X4mVeeQhH2ocN_4M9R6A89tmQ2jObuWm-cu1Yk-G6FSPUONhsoC_99nQnICS4mAuCWWDHxFY61hIrreVZBSH053MgfSaG2sqTb26MkxKWx-TP1sx18pb1xmo4IQEwILIbLlSPA3vafbrbQO5RQcm3UYKtYwev0vAlL5taXiTuLEyPscdzv0Sc" registry.redhat.io --authfile auth.json
-----
-+
-Create secret for the registry:
-+
-[source,bash,role=execute]
-----
-oc create secret generic osp-operators-secret \
- -n openstack-operators \
- --from-file=.dockerconfigjson=auth.json \
- --type=kubernetes.io/dockerconfigjson
-----
-
 . Configure the **Catalog Source, OperatorGroup and Subscription** for the **OpenStack Operator** using your registry:
 +
 Create the new **CatalogSource, OperatorGroup, and Subscription** CRs in the **openstack** namespace from **files/openstack-operators.yaml**: You can cut and paste the referenced yamlfiles from the repo or you may wish to clone the repository onto the bastion which this guide will assume:
@@ -80,18 +61,27 @@ It should look like:
 +
 .Sample Output
 ----
-(...)
-4125610f4af9dfe5c6e5c6f7eee599a6b7a7211154c9c2a29bb1290239gq966   0/1     Completed   0          7m49s
-c0899d48e01d3359dbcab05499bcee071d413f937e1f712d949751a098f844r   0/1     Completed   0          7m48s
-2ce988007db74ed96e2b4f6223d3c76d9a6e177368efdc7c468b73a0bc4fk47   0/1     Completed   0          7m48s
-neutron-operator-controller-manager-5755996c4b-ctbf8              2/2     Running     0          7m19s
-openstack-ansibleee-operator-controller-manager-6d7d77fc45pdtfj   2/2     Running     0          7m13s
-openstack-operator-controller-manager-56fb74ccb7-r8lvn            2/2     Running     0          7m1s
-dataplane-operator-controller-manager-6844bfd645-f2zvs            2/2     Running     0          7m1s
-glance-operator-controller-manager-596b56cd5-rvfrm                2/2     Running     0          6m59s
-swift-operator-controller-manager-df5fbbbc5-zscc5                 2/2     Running     0          6m49s
-octavia-operator-controller-manager-6549bc8f-r6xbp                2/2     Running     0          6m42s
-openstack-baremetal-operator-controller-manager-7cd655c4c7f5glm   2/2     Running     0          6m42s
-barbican-operator-controller-manager-69b766c996-ldg4n             2/2     Running     0          6m28s
-(...)
+NAME                                                              READY   STATUS    RESTARTS   AGE
+barbican-operator-controller-manager-7fb68ff6cb-8zhnf             2/2     Running   0          7m20s
+cinder-operator-controller-manager-c8f77fcfb-cjwl5                2/2     Running   0          7m4s
+designate-operator-controller-manager-78b49498cf-s24nj            2/2     Running   0          6m46s
+glance-operator-controller-manager-58996fbd7d-g9xvg               2/2     Running   0          6m38s
+heat-operator-controller-manager-74c6c75fd7-qnx2r                 2/2     Running   0          7m19s
+horizon-operator-controller-manager-76459c97c9-689qv              2/2     Running   0          6m45s
+infra-operator-controller-manager-77fccf5fc5-6k9zk                2/2     Running   0          7m15s
+ironic-operator-controller-manager-6bd9577485-26ldg               2/2     Running   0          6m8s
+keystone-operator-controller-manager-59b77787bb-cqxsq             2/2     Running   0          6m30s
+manila-operator-controller-manager-5c87bb85f4-pnr7p               2/2     Running   0          7m48s
+mariadb-operator-controller-manager-869fb6f6fd-5n8d6              2/2     Running   0          6m17s
+neutron-operator-controller-manager-75f674c89c-22mcx              2/2     Running   0          8m2s
+nova-operator-controller-manager-544c56f75b-s7c7s                 2/2     Running   0          7m55s
+octavia-operator-controller-manager-5b9c8db7d6-r4sg5              2/2     Running   0          8m7s
+openstack-ansibleee-operator-controller-manager-5dddc7ccb99kmmp   2/2     Running   0          6m54s
+openstack-baremetal-operator-controller-manager-77975546555v9m5   2/2     Running   0          7m47s
+openstack-operator-controller-manager-cfcf84546-4cbwb             2/2     Running   0          7m2s
+ovn-operator-controller-manager-6d77f744c4-g2lm8                  2/2     Running   0          6m10s
+placement-operator-controller-manager-84dc689f7c-trfxb            2/2     Running   0          6m47s
+rabbitmq-cluster-operator-7d6b597db7-mtknb                        1/1     Running   0          6m16s
+swift-operator-controller-manager-5fdb4c94d9-bp9l6                2/2     Running   0          6m22s
+telemetry-operator-controller-manager-564b55fd8-tzmcb             2/2     Running   0          8m11s
 ----
