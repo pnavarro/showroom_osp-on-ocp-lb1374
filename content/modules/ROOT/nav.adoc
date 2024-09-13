@@ -9,7 +9,6 @@
 ** xref:access.adoc[Access OpenStack]
 ** xref:scale-out.adoc[Scale Out your deployment using Cluster Baremetal Operator provisioned nodes]
 ** xref:scale-in.adoc[Scale in your pre-provisioned node]
-** xref:scale-in.adoc[Scale in your pre-provisioned node]
 ** xref:collecting-diagnostic-information.adoc[Collecting diagnostic information]
 ** xref:validate.adoc[Validate your deployed Cloud using Tempest Operator]
 * xref:disconnected.adoc[Install the Red Hat OpenStack Service on OpenShift - Disconnected Environment]
