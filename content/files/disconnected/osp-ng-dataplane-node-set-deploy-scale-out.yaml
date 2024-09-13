@@ -23,7 +23,6 @@ spec:
     - libvirt
     - nova
     - telemetry
-  preProvisioned: true
   networkAttachments:
   - ctlplane
   baremetalSetTemplate: 
@@ -101,18 +100,6 @@ spec:
             - ip_netmask: {{ external_ip }}/{{ external_cidr }}
           {% endif %}
          edpm_network_config_hide_sensitive_logs: false
-
-         edpm_bootstrap_command: |
-           nmcli connection modify "System enp1s0" ipv4.never-default yes ipv6.never-default yes
-           nmcli connection up "System enp1s0"
-           curl -ko /etc/pki/ca-trust/source/anchors/demosat-ha.infra.demo.redhat.com.ca.crt  "https://demosat-ha.infra.demo.redhat.com/pub/katello-server-ca.crt"
-           update-ca-trust
-           yum install -y "https://demosat-ha.infra.demo.redhat.com/pub/katello-ca-consumer-latest.noarch.rpm"
-           subscription-manager register --org="Red_Hat_RHDP_Labs"  --activationkey="demosat-smt-b1374-1711111157" --serverurl=https://demosat-ha.infra.demo.redhat.com:8443/rhsm --baseurl=https://demosat-ha.infra.demo.redhat.com/pulp/repos  
-
-           sudo subscription-manager repos --disable=* 
-           subscription-manager repos --enable=rhceph-6-tools-for-rhel-9-x86_64-rpms --enable=rhel-9-for-x86_64-baseos-rpms --enable=rhel-9-for-x86_64-appstream-rpms --enable=rhel-9-for-x86_64-highavailability-rpms --enable=openstack-dev-preview-for-rhel-9-x86_64-rpms --enable=fast-datapath-for-rhel-9-x86_64-rpms
-
          ctlplane_host_routes: []
          ctlplane_subnet_cidr: 24
          dns_search_domains: aio.example.com

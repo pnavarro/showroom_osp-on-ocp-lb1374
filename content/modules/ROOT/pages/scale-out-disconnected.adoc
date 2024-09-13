@@ -62,7 +62,7 @@ oc get bmh -n openshift-machine-api -w
 ----
 Desired output:
 
-[source,bash,role=execute]
+[source,bash]
 ----
 oc get bmh -n openshift-machine-api
 NAME           STATE                    CONSUMER                   ONLINE   ERROR   AGE
@@ -84,7 +84,20 @@ oc label BareMetalHost osp-compute1 -n openshift-machine-api app=openstack
 
 Deploy the Dataplane
 
-Replace uuid in osp-ng-dataplane-node-set-deploy-scale-out.yaml and edit the edpm_bootstrap_command with your subscription-manager credentials. Finally apply:
+Replace the the string "uuid" by the uuid of your lab (`{guid}`) in osp-ng-dataplane-node-set-deploy-scale-out.yaml and edit the edpm_bootstrap_command with your subscription-manager credentials. 
+
+[source,bash,role=execute]
+----
+vi osp-ng-dataplane-node-set-deploy-scale-out.yaml
+----
+
+Check that the output of this command is empty before proceeding:
+[source,bash,role=execute]
+----
+cat osp-ng-dataplane-node-set-deploy-scale-out.yaml | grep "uuid"
+----
+
+Finally apply:
 [source,bash,role=execute]
 ----
 oc apply -f osp-ng-dataplane-node-set-deploy-scale-out.yaml
