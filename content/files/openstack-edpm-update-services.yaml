@@ -1,0 +1,10 @@
+apiVersion: dataplane.openstack.org/v1beta1
+kind: OpenStackDataPlaneDeployment
+metadata:
+  name: edpm-deployment-ipam-update-dataplane-services
+spec:
+  nodeSets:
+    - openstack-edpm-ipam
+    - scale-out-provisioned
+  servicesOverride:
+    - update

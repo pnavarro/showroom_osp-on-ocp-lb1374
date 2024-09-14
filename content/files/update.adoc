@@ -1,0 +1,177 @@
+# Performing a minor update
+
+## Preparing for a minor update
+
+In this lab we will perform an update of *edpm-compute0* and *edpm-compute1* compute node. We need to create 2 files include a set of OpenStackDataPlaneNodeSet custom resources (CRs):
+. *openstack-edpm-update-ovn.yaml* - You use this file to update your OVN services. You must update OVN services before the OpenStack Operator can begin the automatic update of the remaining control plane services.
+. *openstack-edpm-update-services.yaml*- You use this file to update the remaining control plane packages, services, and container images on the data plane nodes.
+
+### Explore the file OpenStackDataPlaneNodeSet to update OVN service
+
+In the bastion terminal, make sure that you are in lab yamls directory:
+[source,bash,role=execute]
+----
+cd labrepo/content/files
+----
+Visualize the file *openstack-edpm-update-ovn.yaml* to understand better the *servicesOverride* functionality to apply just the *ovn* *OpenStackDataplaneService:
+[source,bash,role=execute]
+----
+cat openstack-edpm-update-ovn.yaml
+----
+
+[,console]
+----
+apiVersion: dataplane.openstack.org/v1beta1
+kind: OpenStackDataPlaneDeployment
+metadata:
+  name: edpm-deployment-ipam-ovn-update
+spec:
+  nodeSets:
+    - openstack-edpm-ipam
+    - scale-out-provisioned
+  servicesOverride:
+    - ovn
+----
+
+### Explore the file OpenStackDataPlaneNodeSet to update remaining services of the data plane
+
+Visualize the file *openstack-edpm-update-services.yaml*:
+
+[source,bash,role=execute]
+----
+cat openstack-edpm-update-services.yaml
+----
+
+[,console]
+----
+apiVersion: dataplane.openstack.org/v1beta1
+kind: OpenStackDataPlaneDeployment
+metadata:
+  name: edpm-deployment-ipam-update-dataplane-services
+spec:
+  nodeSets:
+    - openstack-edpm-ipam
+    - scale-out-provisioned
+  servicesOverride:
+    - update
+----
+
+### Performing a minor update
+
+To update your Red Hat OpenStack Services on OpenShift (RHOSO) 18.0 environment to the latest maintenance release, perform the following tasks:
+
+. Update OVN services on the control plane.
+. Update OVN services on the data plane.
+. Wait for the OpenStack Operator to complete the automatic update of the remaining control plane packages, services, and container images.
+. Update the remaining services on the data plane.
+
+### Updating OVN services on the control plane 
+
+Update the target version in the *OpenStackVersion* custom resource (CR) to point to the version that you want to install. After you update the target version, the OVN service update on the control plane begins automatically.
+
+. Create a patch file for the OpenStackVersion CR on your workstation, for example, *openstackversionpatch.yaml*
+[source,bash,role=execute]
+----
+cat <<EOF >openstackversionpatch.yaml
+   "spec": {
+     "targetVersion": 18.0.2
+     }
+EOF
+----
+. Patch the OpenStackVersion CR:
+[source,bash,role=execute]
+----
+oc patch openstack-galera-network-isolation --type=merge --patch-file openstackversionpatch.yaml
+EOF
+----
+. Verify that the OVN services are updated on the control plane
+[source,bash,role=execute]
+----
+oc wait openstackversion openstack-galera-network-isolation --for=condition=MinorUpdateOVNControlplane  --timeout=20m
+EOF
+----
+
+### Updating OVN services on the data plane
+. To update OVN services on the data plane, create an OpenStackDataPlaneDeployment custom resource (CR) with the openstack-edpm-update-ovn.yaml file:
+[source,bash,role=execute]
+----
+oc create -f openstack-edpm-update-ovn.yaml
+----
+. Verify that the data plane update deployment succeeded:
+[source,bash,role=execute]
+----
+oc wait openstackversion openstack-galera-network-isolation --for=condition=MinorUpdateOVNDataplane --timeout=20m
+----
+
+Check if the update deployment is completed
+. Sample output
+[source,bash]
+----
+oc get openstackdataplanedeployment
+NAME             			     STATUS  MESSAGE
+edpm-deployment-ipam-ovn-update              True  Setup Complete
+----
+
+###  Updating the remaining services on the data plane
+When the OVN service is updated on the control plane and data plane, and the OpenStack Operator has completed the automatic update of the remaining control plane packages, services, and container images, you must update the remaining services on the data plane
+
+. Wait until all control plane services are updated:
+[source,bash,role=execute]
+----
+oc wait openstackversion openstack-galera-network-isolation --for=condition=MinorUpdateControlplane --timeout=20m
+----
+. To update the remaining services on the data plane, create an OpenStackDataPlaneDeployment custom resource (CR) with the openstack-edpm-update-services.yaml file:
+[source,bash,role=execute]
+----
+oc create -f openstack-edpm-update-services.yaml
+----
+. Verify that the data plane update deployment succeeded:
+[source,bash,role=execute]
+----
+oc wait openstackversion openstack-galera-network-isolation --for=condition=MinorUpdateDataplane --timeout=20m
+----
+
+Check if the update deployment is completed
+. Sample output
+[source,bash]
+----
+oc get openstackdataplanedeployment
+NAME             			     STATUS  MESSAGE
+edpm-deployment-ipam-ovn-update              True  Setup Complete
+----
+
+## Rebooting the nodes
+
+You can reboot your Compute nodes any time after you complete the minor update. You check which updated nodes require a reboot first, and then specify them in an OpenStackDatPlaneDeployment custom resource (CR) to start the reboot. Until after the reboot, your environment still uses the old kernel and Open vSwitch (OVS) for data plane development kit (DPDK) implementations.
+
+To ensure minimal downtime of instances in your Red Hat OpenStack Services on OpenShift (RHOSO) environment, you should migrate the instances from the Compute node that you need to reboot.
+
+. Review and understand the *OpenStackDataPlaneDeployment* to reboot the nodes:
+[source,bash]
+----
+cat openstack-edpm-reboot.yaml
+
+apiVersion: dataplane.openstack.org/v1beta1
+kind: OpenStackDataPlaneDeployment
+metadata:
+  name: openstack-edpm-ipam-reboot
+  namespace: openstack
+spec:
+  nodeSets:
+    - openstack-edpm-ipam
+    - scale-out-provisioned
+  servicesOverride: 
+  - reboot-os
+  ansibleExtraVars: 
+    edpm_reboot_strategy: force
+  ansibleLimit: 
+    - edpm-compute-0.aio.example.com
+    - edpm-compute-1.ctlplane.aio.example.com
+----
+. Verify that the *openstack-edpm-ipam-reboot* deployment completed:
+[source,bash]
+----
+oc get openstackdataplanedeployment
+NAME                                    STATUS   MESSAGE
+openstack-edpm-deployment-ipam-reboot   True     Setup complete
+----
