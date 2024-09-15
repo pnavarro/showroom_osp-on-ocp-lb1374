@@ -63,7 +63,7 @@ metadata:
   namespace: openstack-operators
 spec:
   name: openstack-test-operator
-  channel: alpha
+  channel: stable-v1.0
   source: openstack-test-operator-index
   sourceNamespace: openstack-operators
 EOF
