@@ -11,19 +11,60 @@ Ensure that you are in the OpenStack project:
 oc project openstack
 ----
 
-Create a subscription.yaml file:
+. Prepare the secret for installing the Test operators:
++
+Login with your Red Hat account and create a secret:
++
+[source,bash,role=execute]
+----
+podman login --username "6340056|osp-on-ocp-lb1374" --password "eyJhbGciOiJSUzUxMiJ9.eyJzdWIiOiI1Y2EzM2NjNGY4NWM0MmZmYTI3YmU5Y2UyMWI3M2JjMCJ9.GAxgg6Ht2oCS8zxHdwQw9kSD6RHeQOWYaDOcnQB5RElewQKvZmcNWi-YJdInJ5iXTE9r9tGVIN7fhFJL7f-hhL1PK2RVzZHD8qyfkMWcCEF5GUvp8rDX4GDrSkqjpUD44teWYkOy9Nb-3pOGzRIC7qs88uSxMz7hfil4I_HmjF4AAPIi4j3QZhp0lqrXzzf7vt6NLlizDFa2XTcPf_vQqReFu3A_5iWfy8XmLlC7QIixeVv2IE-ahRqM_UDCf5Dg3n2WpYvmP5jcSPFOLoT7sMimyeaPBna793boiX2swmeGHQ23tx1nFavCUavGv_cDRAvzVXCJ2NROTJ5unHiN7CXEbzm4Rg-65tY4D0YynTU8L6t0gYtXYYY9_wi1xNs-cShAmCMh1ySJn9nBcq4ydvH7eQnhSEvoK0bPsN_vWJCgOQBQyOdpTfRMU6piAy9H1zJ0KzsSzuKSS8fX0m9oN7narZPl34DTiEUTDeW8_SS6vJjHr_Q9O_X4mVeeQhH2ocN_4M9R6A89tmQ2jObuWm-cu1Yk-G6FSPUONhsoC_99nQnICS4mAuCWWDHxFY61hIrreVZBSH053MgfSaG2sqTb26MkxKWx-TP1sx18pb1xmo4IQEwILIbLlSPA3vafbrbQO5RQcm3UYKtYwev0vAlL5taXiTuLEyPscdzv0Sc" registry.redhat.io --authfile auth.json
+----
++
+Create secret for the registry:
++
+[source,bash,role=execute]
+----
+oc create secret generic osp-operators-secret \
+ -n openstack-operators \
+ --from-file=.dockerconfigjson=auth.json \
+ --type=kubernetes.io/dockerconfigjson
+----
+
+
+Create a catalogsource, operatorgroup and subscription CR:
 
 [source,bash,role=execute]
 ----
 cat << EOF | oc apply -f -
 apiVersion: operators.coreos.com/v1alpha1
-kind: Subscription
+kind: CatalogSource
 metadata:
-  name: test-operator
+  name: openstack-test-operator-index
   namespace: openstack-operators
 spec:
-  name: test-operator
-  source: openstack-operator-index
+  sourceType: grpc
+  secrets:
+    - "osp-operators-secret"
+  gprcPodConfig:
+    securityContextConfig: legacy
+  # adjust the repolink below to match your environment:
+  image: quay.io/redhat_emp1/pnavarro-ga-test-operator-index:latest
+---
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: test-operator-openstack
+  namespace: openstack-operators
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: openstack-test-operator
+  namespace: openstack-operators
+spec:
+  name: openstack-test-operator
+  channel: alpha
+  source: openstack-test-operator-index
   sourceNamespace: openstack-operators
 EOF
 ----
