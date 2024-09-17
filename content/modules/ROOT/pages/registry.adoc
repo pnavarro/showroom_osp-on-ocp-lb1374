@@ -202,12 +202,12 @@ sudo update-ca-trust
 ## Mirror RHOSO Operators and Images to the Quay registry:
 In this section we will use the oc-mirror command to get all of the required catalog operators to your environment the short list here is:
 The OpenStack operators
-*MetalLB
-*NMState operator
+* MetalLB
+* NMState operator
 Some persistence option for control plane persistence (storageClass) in our case
-*LVMS operator
-*LSO
-*ODF
+* LVMS operator
+* LSO
+* ODF
 OC mirror can target a local registry if the env is proxied or a local file if fully air gapped
 For more info have a look at:
 https://docs.openshift.com/container-platform/4.16/installing/disconnected_install/about-installing-oc-mirror-v2.html#oc-mirror-workflows-fully-disconnected-v2_about-installing-oc-mirror-v2 
