@@ -6,6 +6,30 @@ In this lab we will perform an update of *edpm-compute0* and *edpm-compute1* com
 . *openstack-edpm-update-ovn.yaml* - You use this file to update your OVN services. You must update OVN services before the OpenStack Operator can begin the automatic update of the remaining control plane services.
 . *openstack-edpm-update-services.yaml*- You use this file to update the remaining control plane packages, services, and container images on the data plane nodes.
 
+## Update the OpenStack Operator
+In this lab we have installed the OpenStack operators using manually approved. So, to manually approving a pending Operator update, follow these steps:
+. List the available ClusterServiceVersion for an operator:
+[source,bash,role=execute]
+----
+oc get csv -n openstack-operators
+----
+. Check the status of the pending update:
+[source,bash,role=execute]
+----
+oc describe csv openstack-operator.v1.0.0 -n openstack-operators
+----
+. Manually approve the update:
+[source,bash,role=execute]
+----
+oc get installplan -n openstack-operators
+----
+. Find and approve the pending InstallPlan:
+[source,bash,role=execute]
+----
+oc patch installplan <installplan-name> -n openstack-operators --type merge --patch '{"spec": {"approved": true}}'
+----
+This will approve the Operator update, and OpenShift will proceed with the installation or update of the Operator.
+
 ### Explore the file OpenStackDataPlaneNodeSet to update OVN service
 
 In the bastion terminal, make sure that you are in lab yamls directory:

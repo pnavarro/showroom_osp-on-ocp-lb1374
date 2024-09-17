@@ -34,7 +34,24 @@ Create the new **CatalogSource, OperatorGroup, and Subscription** CRs in the **o
 ----
 oc apply -f osp-ng-openstack-operator.yaml
 ----
-
+. Install the operator using the Manual approval strategy. Confirm that an install plan has been created but not executed as it has not been approved:
+[source,bash,role=execute]
+----
+oc get installplan -n openstack-operators
+----
+.Sample Output
+----
+NAME            CSV                       APPROVAL   APPROVED
+install-lfs4j   octavia-operator.v1.0.0   Manual     false
+----
+. Approve the installation of the operator by updating the approved field of the InstallPlan:
+[source,bash,role=execute]
+----
+oc patch installplan install-lfs4j  \
+    --namespace openstack-operators \
+    --type merge \
+    --patch '{"spec":{"approved":true}}'
+----
 . Confirm that you have installed the Openstack Operator, *openstack-operator.openstack-operators*:
 +
 [source,bash,role=execute]

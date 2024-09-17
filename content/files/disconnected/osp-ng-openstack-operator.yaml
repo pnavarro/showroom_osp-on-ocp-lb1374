@@ -14,7 +14,7 @@ metadata:
   namespace: openstack-operators
 spec:
   channel: stable-v1.0
-  installPlanApproval: Automatic
+  installPlanApproval: Manual
   name: openstack-operator
   source: redhat-operators
   sourceNamespace: openshift-marketplace
