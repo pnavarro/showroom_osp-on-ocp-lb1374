@@ -167,8 +167,7 @@ Subscribe the satellite VM to the Satellite repos
 
 [source,bash,role=execute]
 ----
-subscription-manager register --org="6340056"  --activationkey="train_the_trainers" 
-#subscription-manager register --username pnavarro@redhat.com --password "1amuntvalencian0"
+subscription-manager register --username  --password
 subscription-manager repos --disable "*"
 subscription-manager repos --enable=rhel-8-for-x86_64-baseos-rpms \
 --enable=rhel-8-for-x86_64-appstream-rpms \
