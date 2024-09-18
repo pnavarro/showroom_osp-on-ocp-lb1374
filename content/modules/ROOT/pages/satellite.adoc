@@ -337,7 +337,9 @@ hammer activation-key create \
 --organization "My_Organization"
 ----
 
-Note the following commands as we will need to use them to register RHOSO compute nodes to satellite:
+Note the following commands as we will need to use them to register RHOSO compute nodes to satellite.
+
+WARNING: Don't execute the following commands:
 
 [source,bash]
 ----

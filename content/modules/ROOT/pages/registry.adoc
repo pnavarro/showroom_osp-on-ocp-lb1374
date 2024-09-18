@@ -166,7 +166,7 @@ openstack-internal-registry-quay-redis-c8d944c9d-ng2xp        1/1     Running   
 
 Create the quay_user and private registry
 
-Navigate to quay.apps.`{guid}`.dynamic.redhatworkshops.io and create the **quay_user** user
+In your browser, navigate to quay.apps.`{guid}`.dynamic.redhatworkshops.io and create the **quay_user** user
 account with the password **openstack** and create a private repository called
 **openstack-operator**.
 
@@ -322,6 +322,11 @@ oc-mirror --config ./imageset-config.yaml --max-per-registry 3 docker://quay.app
 
 After the mirroring concludes oc -f apply from the results directory ( usually /root/oc-mirror-workspace/results-<random_number>/) the catalogsource and image-content-source-policy yaml’s for example:
 
+[source,bash]
+----
+[...]
+----
+
 Output:
 
 [source,bash]
@@ -341,19 +346,17 @@ Change directories to this folder( usually /root/oc-mirror-workspace/results-<ra
 cd /root/oc-mirror-workspace/results-1725990982
 ----
 
-
 Prepare the secret for injecting authentication details to the Catalog Source:
-+
+
 Login with your Red Hat account and create a secret. Replace the string uuid by your lab uuid: `{guid}`:
-+
+
 [source,bash,role=execute]
 ----
 podman login --username "quay_user" --password "openstack" quay.apps.uuid.dynamic.redhatworkshops.io/quay_user --authfile auth.json
 ----
 
-+
 Create secret for the registry:
-+
+
 [source,bash,role=execute]
 ----
 oc create secret generic quay-auth-secret \
