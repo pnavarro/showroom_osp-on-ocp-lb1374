@@ -165,9 +165,9 @@ oc create secret generic nova-migration-ssh-key --from-file=ssh-privatekey=id --
 In order to deploy in a disconnected/proxied/airgapped environment some configurations need to be entered into the openstack-dataplane-nodeset yaml file
 
 The main configurations are:
-*RPM repository locations ( redhat only support satellite for hosting disconnected  RPM repositories) already pre-entered in the *edpm_bootstrap_command* ansible variable.
-*Local registry credentials (login / certs) pre-entered in the *edpm_container_registry_logins* ansible variable.
-*The variable *edpm_image_overrides* pointing to the required images for the dataplane deployment.
+* RPM repository locations ( redhat only support satellite for hosting disconnected  RPM repositories) already pre-entered in the *edpm_bootstrap_command* ansible variable.
+* Local registry credentials (login / certs) pre-entered in the *edpm_container_registry_logins* ansible variable.
+* The variable *edpm_image_overrides* pointing to the required images for the dataplane deployment.
 We can extract the actual list being used by the openstack operator by running:
 
 [source,bash,role=execute]
@@ -176,6 +176,11 @@ oc get openstackversions.core.openstack.org openstack-galera-network-isolation -
 ----
 
 Edit the *osp-ng-dataplane-node-set-deploy.yaml* file and replace the string "uuid" by the uuid of your lab (`{guid}`) and make sure the container images signatures match the images from the *openstackversion* CR executed before:
+
+[source,bash,role=execute]
+----
+vi osp-ng-dataplane-node-set-deploy.yaml
+----
 
 .Sample Output
 ----
@@ -192,7 +197,7 @@ Edit the *osp-ng-dataplane-node-set-deploy.yaml* file and replace the string "uu
            sudo subscription-manager register --org="My_Organization" --activationkey="rhoso18" --serverurl satellite.ocp.example.com
            sudo subscription-manager repos --disable=*
            sudo subscription-manager release --set=9.4
-           sudo subscription-manager repos --enable=rhel-9-for-x86_64-highavailability-rpms --enable=rhel-9-for-x86_64-baseos-rpms --enable=rhel-9-for-x86_64-appstream-rpms --enable=rhel-9-for-x86_64-highavailability-rpms --enable=fast-datapath-for-rhel-9-x86_64-rpms --enable=rhoso-18.0-for-rhel-9-x86_64-rpms --enable=rhceph-7-tools-for-rhel-9-x86_64-rpms
+           sudo subscription-manager repos --enable=rhel-9-for-x86_64-baseos-eus-rpms --enable=rhel-9-for-x86_64-appstream-eus-rpms --enable=rhel-9-for-x86_64-highavailability-eus-rpms --enable=rhel-9-for-x86_64-highavailability-rpms --enable=fast-datapath-for-rhel-9-x86_64-rpms --enable=rhoso-18.0-for-rhel-9-x86_64-rpms --enable=rhceph-7-tools-for-rhel-9-x86_64-rpms
            sudo subscription-manager auto-attach
          registry_url: quay.apps.55nc6.dynamic.redhatworkshops.io/quay_user
          edpm_bootstrap_release_version_package: "rhoso-release"
@@ -210,11 +215,6 @@ Edit the *osp-ng-dataplane-node-set-deploy.yaml* file and replace the string "uu
          edpm_telemetry_ceilometer_compute_image: "{{ registry_url }}/rhoso/openstack-ceilometer-compute-rhel9@sha256:b4169bc9ddf9e63622cffa552d0c4496f45c7a93953e97a7888b9a8eb869ee41"
          edpm_telemetry_ceilometer_ipmi_image: "{{ registry_url }}/rhoso/openstack-ceilometer-ipmi-rhel9@sha256:5fb58f8d9c25449c512564bd4435baeeb9c39429e939a1c89d3b9342dbe65ea6"
 [...]
-----
-
-[source,bash,role=execute]
-----
-vi osp-ng-dataplane-node-set-deploy.yaml
 ----
 
 Check that the output of this command is empty before proceeding:

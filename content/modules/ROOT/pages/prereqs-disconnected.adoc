@@ -63,7 +63,7 @@ spec:
   channel: stable
   installPlanApproval: Automatic
   name: kubernetes-nmstate-operator
-  source: redhat-operators
+  source: cs-redhat-operator-index
   sourceNamespace: openshift-marketplace
 EOF
 ----
@@ -150,7 +150,7 @@ metadata:
 spec:
   channel: stable
   name: metallb-operator
-  source: redhat-operators
+  source: cs-redhat-operator-index
   sourceNamespace: openshift-marketplace
 EOF
 ----
@@ -261,7 +261,7 @@ spec:
   channel: stable-v1
   installPlanApproval: Automatic
   name: openshift-cert-manager-operator
-  source: redhat-operators
+  source: cs-redhat-operator-index
   sourceNamespace: openshift-marketplace
 EOF
 ----

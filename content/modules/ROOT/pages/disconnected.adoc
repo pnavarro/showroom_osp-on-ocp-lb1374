@@ -8,6 +8,7 @@ In this lab, you will use the following infrastructure:
 
 In this lab, you will cover the following topics:
 
+* xref:access-lab.adoc[Access to your lab]
 * xref:satellite.adoc[Install and prepare Satellite]
 * xref:prereqs-disconnected.adoc[Perform Prerequisite Operations]
 * xref:install-operators-disconnected.adoc[Install the Red Hat OpenStack Platform Service Operators]

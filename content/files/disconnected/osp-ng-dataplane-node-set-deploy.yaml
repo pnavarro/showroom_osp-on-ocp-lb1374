@@ -145,7 +145,7 @@ spec:
            sudo subscription-manager register --org="My_Organization" --activationkey="rhoso18" --serverurl satellite.ocp.example.com
            sudo subscription-manager repos --disable=*
            sudo subscription-manager release --set=9.4
-           sudo subscription-manager repos --enable=rhel-9-for-x86_64-highavailability-rpms --enable=rhel-9-for-x86_64-baseos-rpms --enable=rhel-9-for-x86_64-appstream-rpms --enable=rhel-9-for-x86_64-highavailability-rpms --enable=fast-datapath-for-rhel-9-x86_64-rpms --enable=rhoso-18.0-for-rhel-9-x86_64-rpms --enable=rhceph-7-tools-for-rhel-9-x86_64-rpms
+           sudo subscription-manager repos  --enable=rhel-9-for-x86_64-baseos-eus-rpms --enable=rhel-9-for-x86_64-appstream-eus-rpms --enable=rhel-9-for-x86_64-highavailability-eus-rpms --enable=rhel-9-for-x86_64-highavailability-rpms --enable=fast-datapath-for-rhel-9-x86_64-rpms --enable=rhoso-18.0-for-rhel-9-x86_64-rpms --enable=rhceph-7-tools-for-rhel-9-x86_64-rpms
            sudo subscription-manager auto-attach
          registry_url: quay.apps.uuid.dynamic.redhatworkshops.io/quay_user
          edpm_bootstrap_release_version_package: "rhoso-release"

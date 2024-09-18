@@ -16,6 +16,6 @@ spec:
   channel: stable-v1.0
   installPlanApproval: Manual
   name: openstack-operator
-  source: redhat-operators
+  source: cs-redhat-operator-index
   sourceNamespace: openshift-marketplace
   startingCSV: openstack-operator.v1.0.0
