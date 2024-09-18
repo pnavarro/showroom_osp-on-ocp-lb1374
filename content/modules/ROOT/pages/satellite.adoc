@@ -202,7 +202,7 @@ satellite-installer --scenario satellite \
 . Select your manifest with the Employee SKU (for example 50aa6725-141f-4b76-8b26-797802ee9e44)
 . Click export manifest and download it in your laptop
 
-From your workstation, copy the manifest.zip to the hypevisor host {bastion_public_hostname}:
+From your workstation, copy the manifest.zip to the hypevisor host {bastion_public_hostname}. Use username `{bastion_ssh_user_name}` and password `{bastion_ssh_password}`.:
 [source,bash,role=execute]
 ----
 scp manifest.zip lab-user@$HYPERVISOR_IP:
@@ -222,22 +222,22 @@ hammer subscription upload \
 --organization "My_Organization"
 ----
 
-Enable the following repos
-*rhel-9-for-x86_64-baseos-eus-rpms 
-*rhel-9-for-x86_64-appstream-eus-rpms 
-*rhel-9-for-x86_64-highavailability-eus-rpms 
-*fast-datapath-for-rhel-9-x86_64-rpms 
-*rhoso-18.0-for-rhel-9-x86_64-rpms
-*rhceph-7-tools-for-rhel-9-x86_64-rpms
+Enable the following repos:
+* rhel-9-for-x86_64-baseos-eus-rpms 
+* rhel-9-for-x86_64-appstream-eus-rpms 
+* rhel-9-for-x86_64-highavailability-eus-rpms 
+* fast-datapath-for-rhel-9-x86_64-rpms 
+* rhoso-18.0-for-rhel-9-x86_64-rpms
+* rhceph-7-tools-for-rhel-9-x86_64-rpms
 
 First list the repos:
 [source,bash,role=execute]
 ----
 hammer repository-set list \
---product "Red Hat Enterprise Linux for x86_64" \
+--product "Red Hat Enterprise Linux for x86_64 - Extended Update Support" \
 --organization "My_Organization"
 hammer repository-set list \
---product "Red Hat Enterprise Linux High Availability for x86_64" \
+--product "Red Hat Enterprise Linux High Availability for x86_64 - Extended Update Support" \
 --organization "My_Organization"
 hammer repository-set list \
 --product "Red Hat OpenStack Services on OpenShift" \
@@ -252,24 +252,24 @@ Then enable the repos:
 [source,bash,role=execute]
 ----
 hammer repository-set enable \
---id 11049 \
+--id 11158 \
 --releasever "9.4" \
 --basearch "x86_64" \
---product "Red Hat Enterprise Linux for x86_64" \
+--product "Red Hat Enterprise Linux for x86_64 - Extended Update Support" \
 --organization "My_Organization"
 
 hammer repository-set enable \
---id 11055 \
+--id 11161 \
 --releasever "9.4" \
 --basearch "x86_64" \
---product "Red Hat Enterprise Linux for x86_64" \
+--product "Red Hat Enterprise Linux for x86_64 - Extended Update Support" \
 --organization "My_Organization"
 
 hammer repository-set enable \
---id 11075 \
+--id 11216 \
 --releasever "9.4" \
 --basearch "x86_64" \
---product "Red Hat Enterprise Linux High Availability for x86_64" \
+--product "Red Hat Enterprise Linux High Availability for x86_64 - Extended Update Support" \
 --organization "My_Organization"
 
 hammer repository-set enable \
