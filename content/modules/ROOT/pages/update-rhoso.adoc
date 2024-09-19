@@ -98,9 +98,11 @@ Update the target version in the *OpenStackVersion* custom resource (CR) to poin
 ----
 cat <<EOF >openstackversionpatch.yaml
    "spec": {
-     "targetVersion": 18.0.1
+     "targetVersion": 1.0.1
      }
 EOF
+
+Replace targetVersion field with the target version you want to install, for example, 1.0.1
 ----
 . Patch the OpenStackVersion CR:
 [source,bash,role=execute]
