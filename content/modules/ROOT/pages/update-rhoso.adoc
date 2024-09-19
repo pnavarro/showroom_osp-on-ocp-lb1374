@@ -98,7 +98,7 @@ Update the target version in the *OpenStackVersion* custom resource (CR) to poin
 ----
 cat <<EOF >openstackversionpatch.yaml
    "spec": {
-     "targetVersion": 18.0.2
+     "targetVersion": 18.0.1
      }
 EOF
 ----
