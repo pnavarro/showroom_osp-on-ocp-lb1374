@@ -3,8 +3,9 @@
 ## Preparing for a minor update
 
 In this lab we will perform an update of *edpm-compute0* and *edpm-compute1* compute node. We need to create 2 files include a set of OpenStackDataPlaneNodeSet custom resources (CRs):
-. *openstack-edpm-update-ovn.yaml* - You use this file to update your OVN services. You must update OVN services before the OpenStack Operator can begin the automatic update of the remaining control plane services.
-. *openstack-edpm-update-services.yaml*- You use this file to update the remaining control plane packages, services, and container images on the data plane nodes.
+
+* *openstack-edpm-update-ovn.yaml* - You use this file to update your OVN services. You must update OVN services before the OpenStack Operator can begin the automatic update of the remaining control plane services.
+* *openstack-edpm-update-services.yaml*- You use this file to update the remaining control plane packages, services, and container images on the data plane nodes.
 
 ## Update the OpenStack Operator
 In this lab we have installed the OpenStack operators using manually approved. So, to manually approving a pending Operator update, follow these steps:

@@ -1,0 +1,534 @@
+# Performing a minor update in disconnected mode
+
+## Updating quay registry to the latest version
+
+Refer to the OpenShift official documentation for more detailed explanation: https://docs.openshift.com/container-platform/4.16/installing/disconnected_install/installing-mirroring-disconnected.html#oc-mirror-updating-registry-about_installing-mirroring-disconnected
+
+In the bastion:
+
+. Prepare the secret for authenticating to registry.redhat.io:
++
+Login with your Red Hat account:
++
+[source,bash,role=execute]
+----
+podman login --username "6340056|osp-on-ocp-lb1374" --password "eyJhbGciOiJSUzUxMiJ9.eyJzdWIiOiI1Y2EzM2NjNGY4NWM0MmZmYTI3YmU5Y2UyMWI3M2JjMCJ9.GAxgg6Ht2oCS8zxHdwQw9kSD6RHeQOWYaDOcnQB5RElewQKvZmcNWi-YJdInJ5iXTE9r9tGVIN7fhFJL7f-hhL1PK2RVzZHD8qyfkMWcCEF5GUvp8rDX4GDrSkqjpUD44teWYkOy9Nb-3pOGzRIC7qs88uSxMz7hfil4I_HmjF4AAPIi4j3QZhp0lqrXzzf7vt6NLlizDFa2XTcPf_vQqReFu3A_5iWfy8XmLlC7QIixeVv2IE-ahRqM_UDCf5Dg3n2WpYvmP5jcSPFOLoT7sMimyeaPBna793boiX2swmeGHQ23tx1nFavCUavGv_cDRAvzVXCJ2NROTJ5unHiN7CXEbzm4Rg-65tY4D0YynTU8L6t0gYtXYYY9_wi1xNs-cShAmCMh1ySJn9nBcq4ydvH7eQnhSEvoK0bPsN_vWJCgOQBQyOdpTfRMU6piAy9H1zJ0KzsSzuKSS8fX0m9oN7narZPl34DTiEUTDeW8_SS6vJjHr_Q9O_X4mVeeQhH2ocN_4M9R6A89tmQ2jObuWm-cu1Yk-G6FSPUONhsoC_99nQnICS4mAuCWWDHxFY61hIrreVZBSH053MgfSaG2sqTb26MkxKWx-TP1sx18pb1xmo4IQEwILIbLlSPA3vafbrbQO5RQcm3UYKtYwev0vAlL5taXiTuLEyPscdzv0Sc" registry.redhat.io
+----
++
+Login with quay_user to the environment's registry or login to your own registry and create a secret. Replace the string uuid by your lab uuid: `{guid}`
++
+[source,bash,role=execute]
+----
+podman login --username "quay_user" --password "openstack" quay.apps.uuid.dynamic.redhatworkshops.io/quay_user
+----
+
+Make sure that the following file exists *$XDG_RUNTIME_DIR/containers/auth.json*:
+[source,bash,role=execute]
+----
+cat $XDG_RUNTIME_DIR/containers/auth.json
+----
+
+Create the image set. Replace the string uuid by your lab uuid: `{guid}`
+
+WARNING: Change minVersion and maxVersion below if you are 
+
+[source,bash,role=execute]
+----
+cat << EOF >> imageset-config.yaml
+kind: ImageSetConfiguration
+apiVersion: mirror.openshift.io/v1alpha2
+storageConfig:
+  registry:
+    imageURL: quay.apps.uuid.dynamic.redhatworkshops.io/quay_user/oc-mirror-metadata:4.16-v2
+    skipTLS: false
+mirror:
+  platform:
+    channels:
+    - name: stable-4.16
+      type: ocp
+  operators:
+  - catalog: registry.redhat.io/redhat/redhat-operator-index:v4.16
+    packages:
+    - name: openstack-operator
+      channels:
+      - name: stable-v1.0
+        minVersion: 1.0.2
+        maxVersion: 1.0.2
+    - name: kubernetes-nmstate-operator
+      channels:
+      - name: stable
+    - name: openshift-cert-manager-operator
+      channels:
+      - name: stable-v1
+    - name: metallb-operator
+      channels:
+      - name: stable
+    - name: odf-multicluster-orchestrator
+      channels:
+      - name: stable-4.16
+    - name: odf-csi-addons-operator
+      channels:
+      - name: stable-4.16
+    - name: odf-compose-operator
+      channels:
+      - name: stable-4.15
+    - name: odf-operator
+      channels:
+      - name: stable-4.16
+    - name: odf-prometheus-operator
+      channels:
+      - name: stable-4.16 
+    - name: kubevirt-hyperconverged
+      channels:
+      - name: stable
+    - name: local-storage-operator
+      channels:
+      - name: stable
+    - name: lvms-operator
+      channels:
+      - name: stable-4.16  
+  additionalImages:
+  - name: registry.redhat.io/ubi8/ubi:latest
+  helm: {}
+EOF
+----
+
+Execute the oc-mirror command. Replace the string uuid by your lab uuid: `{guid}`.:
+
+[source,bash,role=execute]
+----
+oc-mirror --config ./imageset-config-update.yaml --max-per-registry 3 docker://quay.apps.uuid.dynamic.redhatworkshops.io/quay_user --continue-on-error
+----
+
+After the mirroring concludes oc -f apply from the results directory ( usually /root/oc-mirror-workspace/results-<random_number>/) the catalogsource and image-content-source-policy yaml’s for example:
+
+[source,bash]
+----
+[...]
+----
+
+Output:
+
+[source,bash]
+----
+[...]
+Rendering catalog image "quay.apps.s5qwh.dynamic.redhatworkshops.io/quay_user/redhat/redhat-operator-index:v4.16" with file-based catalog
+Writing image mapping to oc-mirror-workspace/results-1725990982/mapping.txt
+Writing CatalogSource manifests to oc-mirror-workspace/results-1725990982
+Writing ICSP manifests to oc-mirror-workspace/results-1725990982
+
+cd /root/oc-mirror-workspace/results-1725990982
+----
+
+Change directories to this folder( usually /root/oc-mirror-workspace/results-<random_number>/):
+[source,bash]
+----
+cd /root/oc-mirror-workspace/results-1725990982
+----
+
+Prepare the secret for injecting authentication details to the Catalog Source:
+
+Login with your Red Hat account and create a secret. Replace the string uuid by your lab uuid: `{guid}`:
+
+[source,bash,role=execute]
+----
+podman login --username "quay_user" --password "openstack" quay.apps.uuid.dynamic.redhatworkshops.io/quay_user --authfile auth.json
+----
+
+Create secret for the registry:
+
+[source,bash,role=execute]
+----
+oc create secret generic quay-auth-secret \
+ -n openshift-marketplace \
+ --from-file=.dockerconfigjson=auth.json \
+ --type=kubernetes.io/dockerconfigjson
+----
+
+
+Edit the catalog source to add the secret to authenticate to the registry:
+
+[source,bash,role=execute]
+----
+vi catalogSource-cs-redhat-operator-index.yaml
+----
+Example:
+
+[source,bash]
+----
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+  name: cs-redhat-operator-index
+  namespace: openshift-marketplace
+spec:
+  image: quay.apps.s5qwh.dynamic.redhatworkshops.io/quay_user/redhat/redhat-operator-index:v4.16
+  sourceType: grpc
+  secrets:
+    - "quay-auth-secret"
+----
+
+Apply the catalogsource yaml and the image content source poliy yaml:
+
+[source,bash]
+----
+oc apply -f catalogSource-cs-redhat-operator-index.yaml
+oc apply -f imageContentSourcePolicy.yaml
+----
+
+## Preparing for a minor update
+
+In this lab we will perform an update of *edpm-compute0* and *edpm-compute1* compute node. We need to create 2 files include a set of OpenStackDataPlaneNodeSet custom resources (CRs):
+. *openstack-edpm-update-ovn.yaml* - You use this file to update your OVN services. You must update OVN services before the OpenStack Operator can begin the automatic update of the remaining control plane services.
+. *openstack-edpm-update-services.yaml*- You use this file to update the remaining control plane packages, services, and container images on the data plane nodes.
+
+## Update the OpenStack Operator
+In this lab we have installed the OpenStack operators using manually approved. So, to manually approving a pending Operator update, follow these steps:
+. List the available ClusterServiceVersion for an operator:
+[source,bash,role=execute]
+----
+oc get csv -n openstack-operators
+----
+. List the install plans and approve the update:
+[source,bash,role=execute]
+----
+oc get installplan -n openstack-operators
+----
+. Sample output:
+----
+NAME            CSV                                   APPROVAL   APPROVED
+install-v9s6t   openstack-ansibleee-operator.v1.0.0   Manual     true
+install-vxdqf   keystone-operator.v1.0.1              Manual     false
+----
+
+. Find and approve the pending InstallPlan:
+[source,bash,role=execute]
+----
+oc patch installplan <installplan-name> -n openstack-operators --type merge --patch '{"spec": {"approved": true}}'
+----
+This will approve the Operator update, and OpenShift will proceed with the installation or update of the Operator.
+. After the new operators are redeployed we should be having available the new target verstion to be applied in the *openstackversion* CR:
+
+[source,bash,role=execute]
+----
+oc get openstackversion -n openstack
+----
++ 
+. Sample output:
+----
+NAME                                 TARGET VERSION      AVAILABLE VERSION              DEPLOYED VERSION
+openstack-galera-network-isolation   18.0.0-20240805.1   18.0.0-20240805.1.1724926390   18.0.0-20240805.1
+----
+
+### Explore the file OpenStackDataPlaneNodeSet to update OVN service
+
+In the bastion terminal, make sure that you are in lab yamls directory:
+[source,bash,role=execute]
+----
+cd labrepo/content/files
+----
+Edit the file *openstack-edpm-update-ovn.yaml* to understand better the *servicesOverride* functionality to apply just the *ovn* *OpenStackDataplaneService:
+[source,bash,role=execute]
+----
+cat openstack-edpm-update-ovn.yaml
+----
+
+[,console]
+----
+apiVersion: dataplane.openstack.org/v1beta1
+kind: OpenStackDataPlaneDeployment
+metadata:
+  name: edpm-deployment-ipam-ovn-update
+spec:
+  nodeSets:
+    - openstack-edpm-ipam
+    - scale-out-provisioned
+  servicesOverride:
+    - ovn
+----
+
+### Explore the file OpenStackDataPlaneNodeSet to update remaining services of the data plane
+
+Visualize the file *openstack-edpm-update-services.yaml*:
+
+[source,bash,role=execute]
+----
+cat openstack-edpm-update-services.yaml
+----
+
+[,console]
+----
+apiVersion: dataplane.openstack.org/v1beta1
+kind: OpenStackDataPlaneDeployment
+metadata:
+  name: edpm-deployment-ipam-update-dataplane-services
+spec:
+  nodeSets:
+    - openstack-edpm-ipam
+    - scale-out-provisioned
+  servicesOverride:
+    - update
+----
+
+### Performing a minor update
+
+To update your Red Hat OpenStack Services on OpenShift (RHOSO) 18.0 environment to the latest maintenance release, perform the following tasks:
+
+. Update OVN services on the control plane.
+. Update OVN services on the data plane.
+. Wait for the OpenStack Operator to complete the automatic update of the remaining control plane packages, services, and container images.
+. Update the remaining services on the data plane.
+
+### Extract the images from openstackversion
+
+Extract the list of container images from the openstackversion:
+
+[source,bash,role=execute]
+----
+oc get openstackversions.core.openstack.org openstack-galera-network-isolation -oyaml
+----
+
++ Output:
+----
+[...]
+   18.0.0-20240805.1.1724926390:
+      agentImage: registry.redhat.io/rhoso-operators/openstack-baremetal-agent-rhel9@sha256:7f76acd66e791c3e7fe6403447e35e42b198d978b1ae76f45176fe9ce4041aab
+      ansibleeeImage: registry.redhat.io/rhoso-operators/ee-openstack-ansible-ee-rhel9@sha256:68fe9860405b1009b435521aaad3dce6ed68de3ba8204722e4c383359ca8d170
+      aodhAPIImage: registry.redhat.io/rhoso/openstack-aodh-api-rhel9@sha256:9e022e97da5944e75bd550c8216cb35e5a6b91abb14c2d4ab6499f276cd2b785
+      aodhEvaluatorImage: registry.redhat.io/rhoso/openstack-aodh-evaluator-rhel9@sha256:2aa55f2d42f5c75beb5ea54ccca43f6dead2980f75eab4e36a598afa526d9fbc
+      aodhListenerImage: registry.redhat.io/rhoso/openstack-aodh-listener-rhel9@sha256:bf48b7a89c70b9fb0c98c562f0e2c04771612e34068c97fd271cbca9bac43816
+      aodhNotifierImage: registry.redhat.io/rhoso/openstack-aodh-notifier-rhel9@sha256:980579409b6f07eb59f0704c974745b7451d3ed6733ff16c19f7ab872413fc80
+      apacheImage: registry.redhat.io/ubi9/httpd-24@sha256:ade1675fb2f87075a9c0a5789d36ff22a1c1ef7408084a6c1dda2219f0744961
+      barbicanAPIImage: registry.redhat.io/rhoso/openstack-barbican-api-rhel9@sha256:f305ae0e6a2a4065e002745ce68f4f2b069a9cc889fed93a5b9fed55957faae0
+      barbicanKeystoneListenerImage: registry.redhat.io/rhoso/openstack-barbican-keystone-listener-rhel9@sha256:548a1908ca7e72168d0b49d1a75084c799d7d01dd71f7586a6cbd50f68d211f0
+      barbicanWorkerImage: registry.redhat.io/rhoso/openstack-barbican-worker-rhel9@sha256:de2f0d97add659b7df3dd87d528d49e44e93cf1cb90d78cfdbaa36af255300c0
+      ceilometerCentralImage: registry.redhat.io/rhoso/openstack-ceilometer-central-rhel9@sha256:80e4011eba442bd80f28df72cbf2285ec802e204716966bb10cd9dab9778ec4e
+      ceilometerComputeImage: registry.redhat.io/rhoso/openstack-ceilometer-compute-rhel9@sha256:0e8b091445308630491f1a02ad0e15b24ecefd3c9bd6506f93244518b23e0fc2
+      ceilometerIpmiImage: registry.redhat.io/rhoso/openstack-ceilometer-ipmi-rhel9@sha256:f3ea2f8f7f85e5e2ed866d584985072cc1c5f30b8d634d7a964cd9b5b9a7f9fd
+      ceilometerNotificationImage: registry.redhat.io/rhoso/openstack-ceilometer-notification-rhel9@sha256:73781461a6fce35b161d0af644b626ac31cc8f31e5034d7dc030faea41a547d8
+      ceilometerProxyImage: registry.redhat.io/rhoso/openstack-aodh-api-rhel9@sha256:9e022e97da5944e75bd550c8216cb35e5a6b91abb14c2d4ab6499f276cd2b785
+      ceilometerSgcoreImage: registry.redhat.io/stf/sg-core-rhel8@sha256:7e6a9cded7d44104fdc43d8cc67eb773547aa904f3ee62497098747d81ad3eae
+      cinderAPIImage: registry.redhat.io/rhoso/openstack-cinder-api-rhel9@sha256:c814e8fbbb01d6c0ed550ae13da580f492eedf6011695719f43c2eaf7f13351f
+      cinderBackupImage: registry.redhat.io/rhoso/openstack-cinder-backup-rhel9@sha256:51d6b991b9778087546c1b2ccaf7db92a3e6fbe584793a16c37751e768bca020
+      cinderSchedulerImage: registry.redhat.io/rhoso/openstack-cinder-scheduler-rhel9@sha256:91af8d570b92b0bfc690564105c43d1a4b746a69176b8791cdd28a1e3ed98606
+      cinderVolumeImage: registry.redhat.io/rhoso/openstack-cinder-volume-rhel9@sha256:c0c0a1ffa537f6be5fd5fa9f6e89e7772199a0ba1e47780a7666ddfb31c29b93
+      designateAPIImage: registry.redhat.io/rhoso/openstack-designate-api-rhel9@sha256:74dc180ffd265da481ed6f10150b65d86ce2b9b20c289b25a37998c6b0ec66ba
+      designateBackendbind9Image: registry.redhat.io/rhoso/openstack-designate-backend-bind9-rhel9@sha256:5a6a7ed326db9119ad8ca81d68393768e6a89f3e757857297ae6026a357dce3c
+      designateCentralImage: registry.redhat.io/rhoso/openstack-designate-central-rhel9@sha256:0d44c4a90f610bf41dbf2aad356521dd739d0e9c31f310a25419b44c66d1393a
+      designateMdnsImage: registry.redhat.io/rhoso/openstack-designate-mdns-rhel9@sha256:33e6361ba4aee16677210892477940148d0c9dc3debb86e70b25819eede7686f
+      designateProducerImage: registry.redhat.io/rhoso/openstack-designate-producer-rhel9@sha256:ecf59b1ed29ed401c9fdc691b402b6a8bb1ea798dbf8376aeaa02d6fe4b7d006
+      designateUnboundImage: registry.redhat.io/rhoso/openstack-unbound-rhel9@sha256:b9d90651415fccac42ad0f8b1dfdc47324e3de50935590324d4b19ca3d216cca
+      designateWorkerImage: registry.redhat.io/rhoso/openstack-designate-worker-rhel9@sha256:3625a44c03ed596f8a384ffb9fcc6a8756a7f149bd5c2756531f756ecb89469d
+      edpmFrrImage: registry.redhat.io/rhoso/openstack-frr-rhel9@sha256:cb0f263eb612f5226b1820cba43775acd700b7a0a5e2837719e458a1a8e04d66
+      edpmIscsidImage: registry.redhat.io/rhoso/openstack-iscsid-rhel9@sha256:e131d320816e8dfa736b124d82987731e30b415c9c0b25073fa100ee5c5d2507
+      edpmLogrotateCrondImage: registry.redhat.io/rhoso/openstack-cron-rhel9@sha256:ae781038666cbbedb7a426cc15a77a7703b09e662f6d44d6930924aef66ecf10
+      edpmMultipathdImage: registry.redhat.io/rhoso/openstack-multipathd-rhel9@sha256:1437cdb9bef4771431228b1f5626155fef7e551daa9b82da7af9df6496fc56dc
+      edpmNeutronDhcpAgentImage: registry.redhat.io/rhoso/openstack-neutron-dhcp-agent-rhel9@sha256:49ea88481ee931c4cefc1013c0cecf96dffb595aecc78397db31972309d555ec
+      edpmNeutronMetadataAgentImage: registry.redhat.io/rhoso/openstack-neutron-metadata-agent-ovn-rhel9@sha256:74278ecec7cb625236b68857251726b1a309b6b05cec3410b77ab95965ca2262
+      edpmNeutronOvnAgentImage: registry.redhat.io/rhoso/openstack-neutron-ovn-agent-rhel9@sha256:7ee2c4e3859908fdaa1b602453b34c632f94fdab0874b7ca44569c82fd270392
+      edpmNeutronSriovAgentImage: registry.redhat.io/rhoso/openstack-neutron-sriov-agent-rhel9@sha256:32f3a12ca0fb986b0ae798cea7112ba3d6e926c0642789c71eaabd49221c24e1
+      edpmNodeExporterImage: registry.redhat.io/openshift4/ose-prometheus-node-exporter-rhel9@sha256:0e3a4d395066d986234d9730ff7d06b7d9cd50b43a2fd65ac3985d241d6bda09
+      edpmOvnBgpAgentImage: registry.redhat.io/rhoso/openstack-ovn-bgp-agent-rhel9@sha256:439a3dee02425e8c820b43cdd0385981e697373d2c68dbfa2cca18f98d04947d
+      glanceAPIImage: registry.redhat.io/rhoso/openstack-glance-api-rhel9@sha256:59ffb6827c9be692653d13f3676669a866c180912c44cc194d8a2c34dabae41b
+      heatAPIImage: registry.redhat.io/rhoso/openstack-heat-api-rhel9@sha256:593bf18584b890fcf1fffa3051e908775dbf51235ab29ca136c2d8e2f0f923a0
+      heatCfnapiImage: registry.redhat.io/rhoso/openstack-heat-api-cfn-rhel9@sha256:2ab59c2fe4cfe28b791cbdb20aabc0f8a215ed90d72f78c1f117367176c35a09
+      heatEngineImage: registry.redhat.io/rhoso/openstack-heat-engine-rhel9@sha256:20ab744184c379bdc259f9dbcc3717e7fc579de06b7e2484505dd25d36a63dfd
+      horizonImage: registry.redhat.io/rhoso/openstack-horizon-rhel9@sha256:38ad856b7ad76b2ff891018f1f3f1d9e665001dec0f4dd443c40ee84a177d578
+      infraDnsmasqImage: registry.redhat.io/rhoso/openstack-neutron-server-rhel9@sha256:1ab19c455873d0537800e39c600dedd8e5f04b853ceaea4f6252587913050d96
+      infraMemcachedImage: registry.redhat.io/rhoso/openstack-memcached-rhel9@sha256:628f9da9acc8cbfe76d764db520b88fbcb23f57ae018e3365b04808ab7a1d48a
+      ironicAPIImage: registry.redhat.io/rhoso/openstack-ironic-api-rhel9@sha256:5ff175d44e6ae3cc08fd5a022632b3f2202bf0b31739d847f050d97145c77f39
+      ironicConductorImage: registry.redhat.io/rhoso/openstack-ironic-conductor-rhel9@sha256:6f78e0e1a481177cda85d630234727d6872c14013b567bdbac35be79cf3a1444
+      ironicInspectorImage: registry.redhat.io/rhoso/openstack-ironic-inspector-rhel9@sha256:d3d0ac9ad0b6c60ce3365ff9f933f1ed8a7f42e6e24dfdc325f55ee1311eee93
+      ironicNeutronAgentImage: registry.redhat.io/rhoso/openstack-ironic-neutron-agent-rhel9@sha256:4cd3a8164dcc2d35ab59d38f29f3cc909a904f5e5f9fe04075deb673c0cda924
+      ironicPxeImage: registry.redhat.io/rhoso/openstack-ironic-pxe-rhel9@sha256:1d9504a5177cc622f82d8939294acf75ee16e4be73de12f410392234da5b3390
+      ironicPythonAgentImage: registry.redhat.io/rhoso/ironic-python-agent-rhel9@sha256:f060f3aad952dff6c6fd25e5ae1662d2431cedf90acb0f76181a6df3c2804895
+      keystoneAPIImage: registry.redhat.io/rhoso/openstack-keystone-rhel9@sha256:6632dc278a6a6e56184bd747197cd6d18b8d7b611ede24476296f79a52c3c2b3
+      manilaAPIImage: registry.redhat.io/rhoso/openstack-manila-api-rhel9@sha256:8564d5d7a71efe655b66a9aac2aaea964ac0e352944a6c02e4ce30e087aecd1a
+      manilaSchedulerImage: registry.redhat.io/rhoso/openstack-manila-scheduler-rhel9@sha256:96901a08a805e25523fe1045ef9a2be722989e99ee8c958173915ff58f748803
+      manilaShareImage: registry.redhat.io/rhoso/openstack-manila-share-rhel9@sha256:ebfa22f915c8d9adb20bf9c4e7945de78afcb9325e797490e5ec537bea898b4b
+      mariadbImage: registry.redhat.io/rhoso/openstack-mariadb-rhel9@sha256:b3723909492e5a61d20c8f5c73d73196cec0bc328ebbef371b4eebfa441f0188
+      neutronAPIImage: registry.redhat.io/rhoso/openstack-neutron-server-rhel9@sha256:1ab19c455873d0537800e39c600dedd8e5f04b853ceaea4f6252587913050d96
+      novaAPIImage: registry.redhat.io/rhoso/openstack-nova-api-rhel9@sha256:6223aa2b61b0c29ee1ef0a55f4c58d79f3c4e9fe72790d1b9ea721e02c150441
+      novaComputeImage: registry.redhat.io/rhoso/openstack-nova-compute-rhel9@sha256:8fd105fefecb67fd74fb77695be6348bc5c64d57819d0f162242321de7b56f42
+      novaConductorImage: registry.redhat.io/rhoso/openstack-nova-conductor-rhel9@sha256:c509e4e2e3f232fbc1a2e2ccc01ad6333fb434e3fc1dc7a922cc370f0357623b
+      novaNovncImage: registry.redhat.io/rhoso/openstack-nova-novncproxy-rhel9@sha256:c61d75cc5a42cbc82e6988c806ea2d2de75b594fc3035b757b7014c9843e0db4
+      novaSchedulerImage: registry.redhat.io/rhoso/openstack-nova-scheduler-rhel9@sha256:32e6ea399235f3874f52f73effcc485949c838492a219f0c97ba015622704ac0
+      octaviaAPIImage: registry.redhat.io/rhoso/openstack-octavia-api-rhel9@sha256:15ee1d6cd2234815dedf65c012e2706c5a8d8e8404ed614795bb81f950d83481
+      octaviaHealthmanagerImage: registry.redhat.io/rhoso/openstack-octavia-health-manager-rhel9@sha256:b5866af9c4264d12eff75175da3ac45f8214a0cb789f8561817b1cc6b2d8f2eb
+      octaviaHousekeepingImage: registry.redhat.io/rhoso/openstack-octavia-housekeeping-rhel9@sha256:2da97959b988aa5a21877a8b4aec02be5e112967ac1324823309683ed3646baa
+      octaviaWorkerImage: registry.redhat.io/rhoso/openstack-octavia-worker-rhel9@sha256:f0bf8185be4fb01f10abc8901e57890810f0f140037d700eb6590d58218206a5
+      openstackClientImage: registry.redhat.io/rhoso/openstack-openstackclient-rhel9@sha256:cb5f8f22700e8ddae83d388f5e5bc96b6c6a9e25f3022b84f2080efe1517c3ea
+      osContainerImage: registry.redhat.io/rhoso/edpm-hardened-uefi-rhel9@sha256:0b4384c0e3ddbec6a8e19af336329a2a45299d4a9c38f06a5aba16b0bcdb7c15
+      ovnControllerImage: registry.redhat.io/rhoso/openstack-ovn-controller-rhel9@sha256:05656c28ac6a4f6d8d7847411f8ea84bcd348680f60e6e8db11008073385e1e9
+      ovnControllerOvsImage: registry.redhat.io/rhoso/openstack-ovn-base-rhel9@sha256:07237906a071922c1f47501e75093555dbee0cf4eb9b9487fd82c98e3158e597
+      ovnNbDbclusterImage: registry.redhat.io/rhoso/openstack-ovn-nb-db-server-rhel9@sha256:05945f0af86c6bf6a1be595f357e0a092194208bd5db547abe0f5f72e755b186
+      ovnNorthdImage: registry.redhat.io/rhoso/openstack-ovn-northd-rhel9@sha256:e1fca6a8728e5414ba8f71afe4e12f3009738655a4707aeb0a37fa3123d89780
+      ovnSbDbclusterImage: registry.redhat.io/rhoso/openstack-ovn-sb-db-server-rhel9@sha256:0140abd1accbb60d645fc6206a8856530bf4af3060e5e464fd40d36a075904ea
+      placementAPIImage: registry.redhat.io/rhoso/openstack-placement-api-rhel9@sha256:c07e3a5bdb8811a067c9e43f3b21f0f3c1c3fdd6568bb9522a88ef19c31e154f
+      rabbitmqImage: registry.redhat.io/rhoso/openstack-rabbitmq-rhel9@sha256:1d25888adf7668ffda82847f578ea62b35400177774626ac7ef23513b944899b
+      swiftAccountImage: registry.redhat.io/rhoso/openstack-swift-account-rhel9@sha256:74253bde37f13b3ea008c1fec86c91c3594d3e219f6b0b31cc9fe06f944e9b51
+      swiftContainerImage: registry.redhat.io/rhoso/openstack-swift-container-rhel9@sha256:2ec951944516d0fbd50a1481d24f498ee84684a00b975bc4bf647d41a0511bdd
+      swiftObjectImage: registry.redhat.io/rhoso/openstack-swift-object-rhel9@sha256:abaf7d2a74d9564eb35f4841d130d2df18551714b518fd18274d8a9c9e323d9f
+      swiftProxyImage: registry.redhat.io/rhoso/openstack-swift-proxy-server-rhel9@sha256:e8026aa3769bca8ff64237f38256be1e830d3bd2b4471cd3e53b302bf286b07a
+[...]
+----
+
+Note that we select the images of the 18.0.0-20240805.1.1724926390 version that it's the target of the version to be applied.
+
+We will need to override the following images and point them to our local registry images
+----
+ovnControllerImage:
+edpmIscsidImage:
+edpmLogrotateCrondImage:
+edpmNeutronMetadataAgentImage:
+edpmFrrImage:
+edpmOvnBgpAgentImage:
+edpmMultipathdImage:
+edpmNeutronSriovAgentImage:
+novaComputeImage:
+ceilometerComputeImage:
+ceilometerIpmiImage:
+----
+
+For example, in our environment, replace "registry.redhat.io" with our repo URL: quay.apps.uuid.dynamic.redhatworkshops.io/quay_user replace the string "uuid" by the uuid of your lab (`{guid}`):
+----
+ovnControllerImage:  quay.apps.uuid.dynamic.redhatworkshops.io/quay_user/rhoso/openstack-ovn-controller-rhel9@sha256:05656c28ac6a4f6d8d7847411f8ea84bcd348680f60e6e8db11008073385e1e9
+edpmIscsidImage: quay.apps.uuid.dynamic.redhatworkshops.io/quay_user/rhoso/openstack-iscsid-rhel9@sha256:e131d320816e8dfa736b124d82987731e30b415c9c0b25073fa100ee5c5d2507
+edpmLogrotateCrondImage: quay.apps.uuid.dynamic.redhatworkshops.io/quay_user/rhoso/openstack-cron-rhel9@sha256:ae781038666cbbedb7a426cc15a77a7703b09e662f6d44d6930924aef66ecf10
+edpmNeutronMetadataAgentImage: quay.apps.uuid.dynamic.redhatworkshops.io/quay_user/rhoso/openstack-neutron-metadata-agent-ovn-rhel9@sha256:74278ecec7cb625236b68857251726b1a309b6b05cec3410b77ab95965ca2262
+edpmFrrImage: quay.apps.uuid.dynamic.redhatworkshops.io/quay_user/rhoso/openstack-frr-rhel9@sha256:cb0f263eb612f5226b1820cba43775acd700b7a0a5e2837719e458a1a8e04d66
+edpmOvnBgpAgentImage: quay.apps.uuid.dynamic.redhatworkshops.io/quay_user/rhoso/openstack-ovn-bgp-agent-rhel9@sha256:439a3dee02425e8c820b43cdd0385981e697373d2c68dbfa2cca18f98d04947d
+edpmMultipathdImage: quay.apps.uuid.dynamic.redhatworkshops.io/quay_user/rhoso/openstack-multipathd-rhel9@sha256:1437cdb9bef4771431228b1f5626155fef7e551daa9b82da7af9df6496fc56dc
+edpmNeutronSriovAgentImage: quay.apps.uuid.dynamic.redhatworkshops.io/quay_user/rhoso/openstack-neutron-sriov-agent-rhel9@sha256:32f3a12ca0fb986b0ae798cea7112ba3d6e926c0642789c71eaabd49221c24e1
+novaComputeImage: quay.apps.uuid.dynamic.redhatworkshops.io/quay_user/rhoso/openstack-nova-compute-rhel9@sha256:8fd105fefecb67fd74fb77695be6348bc5c64d57819d0f162242321de7b56f42
+ceilometerComputeImage: quay.apps.uuid.dynamic.redhatworkshops.io/quay_user/rhoso/openstack-ceilometer-compute-rhel9@sha256:0e8b091445308630491f1a02ad0e15b24ecefd3c9bd6506f93244518b23e0fc2
+ceilometerIpmiImage: quay.apps.uuid.dynamic.redhatworkshops.io/quay_user/rhoso/openstack-ceilometer-ipmi-rhel9@sha256:f3ea2f8f7f85e5e2ed866d584985072cc1c5f30b8d634d7a964cd9b5b9a7f9fd
+----
+
+We will be using this list in the next section
+
+### Updating OVN services on the control plane 
+
+Update the target version in the *OpenStackVersion* custom resource (CR) to point to the version that you want to install. After you update the target version, the OVN service update on the control plane begins automatically.
+
+. Create a patch file for the OpenStackVersion CR on your workstation, for example, *openstackversionpatch.yaml*. Replace the string "uuid" by the uuid of your lab (`{guid}`):
+[source,bash,role=execute]
+----
+cat <<EOF > openstackversionpatch.yaml
+apiVersion: core.openstack.org/v1beta1
+kind: OpenStackVersion
+metadata:
+  name: openstack-galera-network-isolation
+spec:
+  targetVersion: 18.0.0-20240805.1.1724926390
+  customContainerImages:
+    ceilometerComputeImage: quay.apps.uuid.dynamic.redhatworkshops.io/quay_user/rhoso/openstack-ceilometer-compute-rhel9@sha256:0e8b091445308630491f1a02ad0e15b24ecefd3c9bd6506f93244518b23e0fc2
+    ceilometerIpmiImage: quay.apps.uuid.dynamic.redhatworkshops.io/quay_user/rhoso/openstack-ceilometer-ipmi-rhel9@sha256:f3ea2f8f7f85e5e2ed866d584985072cc1c5f30b8d634d7a964cd9b5b9a7f9fd
+    edpmFrrImage: quay.apps.uuid.dynamic.redhatworkshops.io/quay_user/rhoso/openstack-frr-rhel9@sha256:cb0f263eb612f5226b1820cba43775acd700b7a0a5e2837719e458a1a8e04d66
+    edpmIscsidImage: quay.apps.uuid.dynamic.redhatworkshops.io/quay_user/rhoso/openstack-iscsid-rhel9@sha256:e131d320816e8dfa736b124d82987731e30b415c9c0b25073fa100ee5c5d2507
+    edpmLogrotateCrondImage: quay.apps.uuid.dynamic.redhatworkshops.io/quay_user/rhoso/openstack-cron-rhel9@sha256:ae781038666cbbedb7a426cc15a77a7703b09e662f6d44d6930924aef66ecf10
+    edpmMultipathdImage: quay.apps.uuid.dynamic.redhatworkshops.io/quay_user/rhoso/openstack-multipathd-rhel9@sha256:1437cdb9bef4771431228b1f5626155fef7e551daa9b82da7af9df6496fc56dc
+    edpmNeutronMetadataAgentImage: quay.apps.uuid.dynamic.redhatworkshops.io/quay_user/rhoso/openstack-neutron-metadata-agent-ovn-rhel9@sha256:74278ecec7cb625236b68857251726b1a309b6b05cec3410b77ab95965ca2262
+    edpmNeutronSriovAgentImage: quay.apps.uuid.dynamic.redhatworkshops.io/quay_user/rhoso/openstack-neutron-sriov-agent-rhel9@sha256:32f3a12ca0fb986b0ae798cea7112ba3d6e926c0642789c71eaabd49221c24e1
+    edpmOvnBgpAgentImage: quay.apps.uuid.dynamic.redhatworkshops.io/quay_user/rhoso/openstack-ovn-bgp-agent-rhel9@sha256:439a3dee02425e8c820b43cdd0385981e697373d2c68dbfa2cca18f98d04947d
+    novaComputeImage: quay.apps.uuid.dynamic.redhatworkshops.io/quay_user/rhoso/openstack-nova-compute-rhel9@sha256:8fd105fefecb67fd74fb77695be6348bc5c64d57819d0f162242321de7b56f42
+    ovnControllerImage: quay.apps.uuid.dynamic.redhatworkshops.io/quay_user/rhoso/openstack-ovn-controller-rhel9@sha256:05656c28ac6a4f6d8d7847411f8ea84bcd348680f60e6e8db11008073385e1e9
+EOF
+
+Replace targetVersion field with the target version you want to install, for example, 18.0.0-20240805.1.1724926390
+----
+. Patch the OpenStackVersion CR:
+[source,bash,role=execute]
+----
+oc patch openstackversion openstack-galera-network-isolation --type=merge --patch-file openstackversionpatch.yaml
+----
+. Verify that the OVN services are updated on the control plane
+[source,bash,role=execute]
+----
+oc wait openstackversion openstack-galera-network-isolation --for=condition=MinorUpdateOVNControlplane  --timeout=20m
+----
+
+### Updating OVN services on the data plane
+. To update OVN services on the data plane, create an OpenStackDataPlaneDeployment custom resource (CR) with the openstack-edpm-update-ovn.yaml file:
+[source,bash,role=execute]
+----
+oc create -f openstack-edpm-update-ovn.yaml
+----
+. Verify that the data plane update deployment succeeded:
+[source,bash,role=execute]
+----
+oc wait openstackversion openstack-galera-network-isolation --for=condition=MinorUpdateOVNDataplane --timeout=20m
+----
+
+Check if the update deployment is completed
+. Sample output
+[source,bash]
+----
+oc get openstackdataplanedeployment
+NAME             			     STATUS  MESSAGE
+edpm-deployment-ipam-ovn-update              True  Setup Complete
+----
+
+###  Updating the remaining services on the data plane
+When the OVN service is updated on the control plane and data plane, and the OpenStack Operator has completed the automatic update of the remaining control plane packages, services, and container images, you must update the remaining services on the data plane
+
+. Wait until all control plane services are updated:
+[source,bash,role=execute]
+----
+oc wait openstackversion openstack-galera-network-isolation --for=condition=MinorUpdateControlplane --timeout=20m
+----
+. To update the remaining services on the data plane, create an OpenStackDataPlaneDeployment custom resource (CR) with the openstack-edpm-update-services.yaml file:
+[source,bash,role=execute]
+----
+oc create -f openstack-edpm-update-services.yaml
+----
+. Verify that the data plane update deployment succeeded:
+[source,bash,role=execute]
+----
+oc wait openstackversion openstack-galera-network-isolation --for=condition=MinorUpdateDataplane --timeout=20m
+----
+
+Check if the update deployment is completed
+. Sample output
+[source,bash]
+----
+oc get openstackdataplanedeployment
+NAME             			     STATUS  MESSAGE
+edpm-deployment-ipam-ovn-update              True  Setup Complete
+----
+
+## Rebooting the nodes
+
+You can reboot your Compute nodes any time after you complete the minor update. You check which updated nodes require a reboot first, and then specify them in an OpenStackDatPlaneDeployment custom resource (CR) to start the reboot. Until after the reboot, your environment still uses the old kernel and Open vSwitch (OVS) for data plane development kit (DPDK) implementations.
+
+To ensure minimal downtime of instances in your Red Hat OpenStack Services on OpenShift (RHOSO) environment, you should migrate the instances from the Compute node that you need to reboot.
+
+. Review and understand the *OpenStackDataPlaneDeployment* to reboot the nodes:
+[source,bash]
+----
+cat openstack-edpm-reboot.yaml
+
+apiVersion: dataplane.openstack.org/v1beta1
+kind: OpenStackDataPlaneDeployment
+metadata:
+  name: openstack-edpm-ipam-reboot
+  namespace: openstack
+spec:
+  nodeSets:
+    - openstack-edpm-ipam
+    - scale-out-provisioned
+  servicesOverride: 
+  - reboot-os
+  ansibleExtraVars: 
+    edpm_reboot_strategy: force
+  ansibleLimit: 
+    - edpm-compute-0.aio.example.com
+    - edpm-compute-1.ctlplane.aio.example.com
+----
+. Verify that the *openstack-edpm-ipam-reboot* deployment completed:
+[source,bash]
+----
+oc get openstackdataplanedeployment
+NAME                                    STATUS   MESSAGE
+openstack-edpm-deployment-ipam-reboot   True     Setup complete
+----

@@ -223,6 +223,7 @@ hammer subscription upload \
 ----
 
 Enable the following repos:
+
 * rhel-9-for-x86_64-baseos-eus-rpms 
 * rhel-9-for-x86_64-appstream-eus-rpms 
 * rhel-9-for-x86_64-highavailability-eus-rpms 

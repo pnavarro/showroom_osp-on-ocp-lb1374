@@ -167,10 +167,9 @@ openstack-internal-registry-quay-redis-c8d944c9d-ng2xp        1/1     Running   
 Create the quay_user and private registry
 
 In your browser, navigate to quay.apps.`{guid}`.dynamic.redhatworkshops.io and create the **quay_user** user
-account with the password **openstack** and create a private repository called
-**openstack-operator**.
+account with the password **openstack**.
 
-Replace your uuid by `{guid}`
+WARNING: Replace your uuid by `{guid}`
 
 Obtain the **self-signed certificate** for the **Quay Registry** and patch the cluster. Replace your uuid by `{guid}`
 
@@ -178,6 +177,9 @@ Obtain the **self-signed certificate** for the **Quay Registry** and patch the c
 ----
 ex +'/BEGIN CERTIFICATE/,/END CERTIFICATE/p' <(echo | openssl s_client -showcerts -connect quay.apps.uuid.dynamic.redhatworkshops.io:443) -scq > server.pem
 ----
+
+WARNING: Replace your uuid by `{guid}`
+
 [source,bash,role=execute]
 ----
 oc create configmap registry-config --from-file=quay.apps.uuid.dynamic.redhatworkshops.io=server.pem -n openshift-config
@@ -186,6 +188,8 @@ oc create configmap registry-config --from-file=quay.apps.uuid.dynamic.redhatwor
 ----
 oc patch image.config.openshift.io/cluster --patch '{"spec":{"additionalTrustedCA":{"name":"registry-config"}}}' --type=merge
 ----
+WARNING: Replace your uuid by `{guid}`
+
 [source,bash,role=execute]
 ----
 oc patch image.config.openshift.io/cluster --type merge --patch '{"spec":{"registrySources":{"allowedRegistries":["docker-registry.upshift.redhat.com","registry.redhat.io","quay.io","registry-proxy.engineering.redhat.com","gcr.io","image-registry.openshift-image-registry.svc:5000","quay.apps.uuid.dynamic.redhatworkshops.io"],"insecureRegistries":["docker-registry.upshift.redhat.com","quay.apps.uuid.dynamic.redhatworkshops.io"]}}}'
@@ -202,12 +206,16 @@ sudo update-ca-trust
 ## Mirror RHOSO Operators and Images to the Quay registry:
 In this section we will use the oc-mirror command to get all of the required catalog operators to your environment the short list here is:
 The OpenStack operators
+
 * MetalLB
 * NMState operator
+
 Some persistence option for control plane persistence (storageClass) in our case
+
 * LVMS operator
 * LSO
 * ODF
+
 OC mirror can target a local registry if the env is proxied or a local file if fully air gapped
 For more info have a look at:
 https://docs.openshift.com/container-platform/4.16/installing/disconnected_install/about-installing-oc-mirror-v2.html#oc-mirror-workflows-fully-disconnected-v2_about-installing-oc-mirror-v2 
@@ -244,7 +252,11 @@ Make sure that the following file exists *$XDG_RUNTIME_DIR/containers/auth.json*
 cat $XDG_RUNTIME_DIR/containers/auth.json
 ----
 
-Create the image set. Replace the string uuid by your lab uuid: `{guid}`
+Create the image set. 
+
+WARNING: Replace the string uuid by your lab uuid: `{guid}`:
+
+WARNING: In this lab we are forcing to use the 18.0.0 version of RHOSO so that we can exercise to update the environment to the latest version available. 
 
 [source,bash,role=execute]
 ----
@@ -266,12 +278,18 @@ mirror:
     - name: openstack-ansibleee-operator
       channels:
       - name: stable-v1.0
+        minVersion: 1.0.0
+        maxVersion: 1.0.0
     - name: openstack-operator
       channels:
       - name: stable-v1.0
+        minVersion: 1.0.0
+        maxVersion: 1.0.0
     - name: openstack-baremetal-operator
       channels:
       - name: stable-v1.0
+        minVersion: 1.0.0
+        maxVersion: 1.0.0
     - name: kubernetes-nmstate-operator
       channels:
       - name: stable

@@ -98,7 +98,7 @@ validate-network-another-osdpd   ["ctlplane"]         False    Job in progress
 . Filter for the name and service for a specific deployment:
 +
 ----
-$ oc get openstackansibleee -l openstackdataplanedeployment=<deployment_name>
+oc get openstackansibleee -l openstackdataplanedeployment=<deployment_name>
 ----
 +
 * Replace `<deployment_name>` with the name of the deployment to use to filter the services list.
