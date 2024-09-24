@@ -40,7 +40,7 @@ The new host should be visible:
 
 Back on the **bastion** server:
 
-. Change to the the Files Repo
+Change to the the Files Repo
 +
 In the bastion terminal, clone the repo and change directory to the files that we will used later in the lab
 +
