@@ -273,7 +273,13 @@ mirror:
   operators:
   - catalog: registry.redhat.io/redhat/redhat-operator-index:v4.16
     packages:
+    - name: openstack-ansibleee-operator
+      channels:
+      - name: stable-v1.0
     - name: openstack-operator
+      channels:
+      - name: stable-v1.0
+    - name: openstack-baremetal-operator
       channels:
       - name: stable-v1.0
     - name: kubernetes-nmstate-operator
