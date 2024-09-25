@@ -143,10 +143,8 @@ spec:
            sudo update-ca-trust
            sudo rpm -Uvh http://satellite.ocp.example.com/pub/katello-ca-consumer-latest.noarch.rpm
            sudo subscription-manager register --org="My_Organization" --activationkey="rhoso18" --serverurl satellite.ocp.example.com
-           sudo subscription-manager repos --disable=*
-           sudo subscription-manager release --set=9.4
            sudo subscription-manager repos  --enable=rhel-9-for-x86_64-baseos-eus-rpms --enable=rhel-9-for-x86_64-appstream-eus-rpms --enable=rhel-9-for-x86_64-highavailability-eus-rpms --enable=fast-datapath-for-rhel-9-x86_64-rpms --enable=rhoso-18.0-for-rhel-9-x86_64-rpms --enable=rhceph-7-tools-for-rhel-9-x86_64-rpms
-           sudo subscription-manager auto-attach
+           sudo subscription-manager release --set=9.4
          registry_url: quay.apps.uuid.dynamic.redhatworkshops.io/quay_user
          edpm_bootstrap_release_version_package: "rhoso-release"
          edpm_ovn_controller_agent_image: "{{ registry_url }}/rhoso/openstack-ovn-controller-rhel9@sha256:d425294a2bdc634210b3deccdc0d26762db262518768b94789da9fed303290dc"
