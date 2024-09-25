@@ -49,6 +49,13 @@ In the bastion terminal, clone the repo and change directory to the files that w
 cd labrepo/content/files/disconnected
 ----
 
+The BMO manages BareMetalHost CRs in the openshift-machine-api namespace by default. You must update the Provisioning CR to watch all namespaces:
+
+[source,bash,role=execute]
+----
+oc patch provisioning provisioning-configuration --type merge -p '{"spec":{"watchAllNamespaces": true }}'
+----
+
 Create a Baremetal Host to prepare
 [source,bash,role=execute]
 ----
