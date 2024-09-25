@@ -346,7 +346,6 @@ WARNING: Don't execute the following commands:
 ----
 rpm -Uvh http://satellite.ocp.example.com/pub/katello-ca-consumer-latest.noarch.rpm
 subscription-manager register --org="My_Organization" --activationkey="rhoso18" --serverurl satellite.ocp.example.com
-subscription-manager auto-attach
 ----
 
 ## Troubleshooting
