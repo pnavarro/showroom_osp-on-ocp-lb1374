@@ -349,3 +349,16 @@ subscription-manager register --org="My_Organization" --activationkey="rhoso18" 
 subscription-manager auto-attach
 ----
 
+## Troubleshooting
+
+If you need to access to the satellite UI use a tool like sshuttle from your workstation to simulate a VPN:
+
+* hypervisor IP: `{bastion_public_hostname}`.
+* username `{bastion_ssh_user_name}` and password `{bastion_ssh_password}`
+
+[source,bash]
+----
+sshuttle -r lab-user@$HYPERVISOR_HOSTNAME 192.168.123.0/24
+----
+
+Navigate with your favorite browser: https://192.168.123.200/
