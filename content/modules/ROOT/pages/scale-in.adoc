@@ -130,8 +130,8 @@ nodes from the `nodes` section.
 [source,bash,role=execute]
 ----
 
-oc patch openstackdataplanenodeset/openstack-edpm --type json --patch '[{ "op": "remove", "path": "/spec/nodes/edpm-compute-0" }]'
-openstackdataplanenodeset.dataplane.openstack.org/openstack-edpm patched
+oc patch openstackdataplanenodeset/openstack-edpm-ipam --type json --patch '[{ "op": "remove", "path": "/spec/nodes/edpm-compute-0" }]'
+openstackdataplanenodeset.dataplane.openstack.org/openstack-edpm-ipam patched
 ----
 
 == Scaling In by removing a NodeSet
