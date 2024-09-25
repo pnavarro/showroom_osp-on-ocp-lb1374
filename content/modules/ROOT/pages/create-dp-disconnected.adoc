@@ -165,16 +165,18 @@ oc create secret generic nova-migration-ssh-key --from-file=ssh-privatekey=id --
 In order to deploy in a disconnected/proxied/airgapped environment some configurations need to be entered into the openstack-dataplane-nodeset yaml file
 
 The main configurations are:
+
 * RPM repository locations ( redhat only support satellite for hosting disconnected  RPM repositories) already pre-entered in the *edpm_bootstrap_command* ansible variable.
 * Local registry credentials (login / certs) pre-entered in the *edpm_container_registry_logins* ansible variable.
 * The variable *edpm_image_overrides* pointing to the required images for the dataplane deployment.
+
 We can extract the actual list being used by the openstack operator by running:
 
 [source,bash,role=execute]
 ----
 oc get openstackversions.core.openstack.org openstack-galera-network-isolation -oyaml
 ----
-+ Output:
+Output:
 [source,bash]
 [...]
 ----
@@ -264,6 +266,7 @@ oc get openstackversions.core.openstack.org openstack-galera-network-isolation -
 ----
 
 Note the mapping between edpm container image variable and *openstackversions.core.openstack.org* ansible variables that we will be used for the next point:
+
 .Mapping
 ----
 edpm_ovn_controller_agent_image: ovnControllerImage
