@@ -307,6 +307,8 @@ do
 done
 ----
 
+WARNING: Wait 15 min until the repository synchronization tasks are finished
+
 Create content view:
 [source,bash,role=execute]
 ----
@@ -340,7 +342,7 @@ hammer activation-key create \
 
 Note the following commands as we will need to use them to register RHOSO compute nodes to satellite.
 
-WARNING: Don't execute the following commands:
+WARNING: Don't execute the following commands, they will be will be included later in the dataplane node deployment (edpm_bootstrap_command variable):
 
 [source,bash]
 ----
