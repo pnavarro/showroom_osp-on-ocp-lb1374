@@ -1,0 +1,258 @@
+= Install RHOSO 18 dataplane
+
+== Create secret for the subcription manager credentials
+
+Create a secret for the subscription manager and a secret for the Red Hat registry:
+
+[source,bash,role=execute]
+----
+echo -n "your_username" | base64
+echo -n "your_password" | base64
+----
+
+[source,bash,role=execute]
+----
+oc apply -f - <<EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: subscription-manager
+  namespace: openstack
+data:
+  username: <base64 encoded subscription-manager username>
+  password: <base64 encoded subscription-manager password>
+EOF
+----
+
+
+== Using OpenShift Gitops application to install RHOSO data plane
+
+Create an argocd application manifest to deploy the RHOSO data plane:
+
+[source,bash,role=execute]
+----
+cat << EOF | oc apply -f -
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: openstack-deployment-data-plane
+  namespace: openshift-gitops
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/pnavarro/showroom_osp-on-ocp-lb1374.git'
+    targetRevision: HEAD
+    path: content/files/manifests/openstack-data-plane-deployment
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: false
+    syncOptions:
+    - CreateNamespace=true
+EOF
+----
+Access the OpenShift Gitops console to check the deployment of the RHOSO operators
+
+image::6_deploy_rhoso_dataplane.png[Deployed RHOSO Dataplane]
+
+Click on the *openstack-deployment-data-plane* Gitops application to access to the dataplane deployment:
+
+image::7_inspect_jobs_data_plane.png[Deployed RHOSO Dataplane]
+
+Click on the *bootstrap-openstack-edpm-ipam-openstack-edpm-ipam* job to access to the logs of the deployment:
+
+image::8_details_job.png[Deployed RHOSO Dataplane]
+
+Follow the progress of all the logs until finished as in the image
+
+image::9_all_jobs_finished.png[Deployed RHOSO Dataplane]
+
+You use the *OpenStackDataPlaneDeployment* CRD to configure the services on the data plane nodes and deploy the data plane. Verify that the data plane is deployed.
+
+[source,bash,role=execute]
+----
+oc get openstackdataplanedeployment
+----
+.Sample Output
+[source,bash]
+----
+NAME                  STATUS   MESSAGE
+openstack-edpm-ipam   True     Setup Complete
+----
+
+*OpenStackDataPlaneNodeSet* CRD creates a set of generic Compute nodes with some node-specific configuration.
+
+[source,bash,role=execute]
+----
+oc get openstackdataplanenodeset
+----
+
+.Sample Output
+[source,bash]
+----
+NAME                  STATUS   MESSAGE
+openstack-edpm-ipam   True     NodeSet Ready
+----
+
+In this example a pre-provisioned compute *edpm-compute-0* has been defined in the openstack-edpm-ipam *OpenStackDataPlaneNodeSet* CRD. You can describe this resource to explore the compute configuration:
+
+[source,bash,role=execute]
+----
+oc describe openstackdataplanenodeset openstack-edpm-ipam -n openstack
+----
+.Sample Output
+[source,bash]
+----
+apiVersion: dataplane.openstack.org/v1beta1
+kind: OpenStackDataPlaneNodeSet
+metadata:
+  name: openstack-edpm-ipam
+  namespace: openstack
+spec:
+  env:
+    - name: ANSIBLE_FORCE_COLOR
+      value: "True"
+    - name: ANSIBLE_VERBOSITY
+      value: "2"
+  services:
+    - bootstrap
+    - configure-network
+    - validate-network
+    - install-os
+    - configure-os
+    - ssh-known-hosts
+    - run-os
+    - reboot-os
+    - install-certs
+    - ovn
+    - neutron-metadata
+    - libvirt
+    - nova
+    - telemetry
+  preProvisioned: true
+  networkAttachments:
+  - ctlplane
+  nodes:
+      edpm-compute-0:
+        hostName: edpm-compute-0
+        ansible:
+          ansibleHost: 172.22.0.100
+        networks:
+        - name: ctlplane
+          subnetName: subnet1
+          defaultRoute: false
+          fixedIP: 172.22.0.100
+        - name: internalapi
+          subnetName: subnet1
+        - name: storage
+          subnetName: subnet1
+        - name: tenant
+          subnetName: subnet1
+        - name: external
+          subnetName: subnet1
+  nodeTemplate:
+    ansibleSSHPrivateKeySecret: dataplane-ansible-ssh-private-key-secret
+    ansible:
+      ansibleUser: root
+      ansibleVarsFrom:
+      - prefix: subscription_manager_
+        secretRef:
+          name: subscription-manager
+      ansibleVars:
+         edpm_network_config_template: |
+          ---
+          {% set mtu_list = [ctlplane_mtu] %}
+          {% for network in nodeset_networks %}
+          {{ mtu_list.append(lookup('vars', networks_lower[network] ~ '_mtu')) }}
+          {%- endfor %}
+          {% set min_viable_mtu = mtu_list | max %}
+          network_config:
+          - type: ovs_bridge
+            name: {{ neutron_physical_bridge_name }}
+            mtu: {{ min_viable_mtu }}
+            use_dhcp: false
+            dns_servers: {{ ctlplane_dns_nameservers }}
+            domain: {{ dns_search_domains }}
+            addresses:
+            - ip_netmask: {{ ctlplane_ip }}/{{ ctlplane_cidr }}
+            routes: {{ ctlplane_host_routes }}
+            members:
+            - type: interface
+              name: nic1
+              mtu: {{ min_viable_mtu }}
+              # force the MAC address of the bridge to this interface
+              primary: true
+          {% for network in nodeset_networks if network != 'external' %}
+            - type: vlan
+              mtu: {{ lookup('vars', networks_lower[network] ~ '_mtu') }}
+              vlan_id: {{ lookup('vars', networks_lower[network] ~ '_vlan_id') }}
+              addresses:
+              - ip_netmask:
+                  {{ lookup('vars', networks_lower[network] ~ '_ip') }}/{{ lookup('vars', networks_lower[network] ~ '_cidr') }}
+              routes: {{ lookup('vars', networks_lower[network] ~ '_host_routes') }}
+          {% endfor %}
+          {% if 'external' in nodeset_networks %}
+          - type: ovs_bridge
+            name: br-ex
+            dns_servers: {{ ctlplane_dns_nameservers }}
+            domain: {{ dns_search_domains }}
+            use_dhcp: false
+            members:
+            - type: interface
+              name: nic2
+              mtu: 1500
+              primary: true
+            routes:
+            - ip_netmask: 0.0.0.0/0
+              next_hop: {{ external_gateway_ip | default('192.168.123.1') }}
+            addresses:
+            - ip_netmask: {{ external_ip }}/{{ external_cidr }}
+          {% endif %}
+         edpm_network_config_hide_sensitive_logs: false
+          #
+          # These vars are for the network config templates themselves and are
+          # considered EDPM network defaults (for all computes).
+         ctlplane_host_routes: []
+         ctlplane_subnet_cidr: 24
+         dns_search_domains: aio.example.com
+         ctlplane_vlan_id: 1
+         ctlplane_mtu: 1500
+         external_mtu: 1500
+         external_vlan_id: 44
+         external_cidr: '24'
+         external_host_routes: []
+         internalapi_mtu: 1500
+         internalapi_vlan_id: 20
+         internalapi_cidr: '24'
+         internalapi_host_routes: []
+         storage_mtu: 1500
+         storage_vlan_id: 21
+         storage_cidr: '24'
+         storage_host_routes: []
+         tenant_mtu: 1500
+         tenant_vlan_id: 22
+         tenant_cidr: '24'
+         tenant_host_routes: []
+         neutron_physical_bridge_name: br-osp
+         # name of the first network interface on the compute node:
+         neutron_public_interface_name: eth0
+         # edpm_nodes_validation
+         edpm_nodes_validation_validate_controllers_icmp: false
+         edpm_nodes_validation_validate_gateway_icmp: false
+         gather_facts: false
+         enable_debug: false
+         edpm_sshd_allowed_ranges: ['172.22.0.0/16']
+         edpm_podman_buildah_login: true
+         edpm_container_registry_logins:
+          registry.redhat.io:
+            6340056|osp-on-ocp-lb1374: "eyJhbGciOiJSUzUxMiJ9.eyJzdWIiOiI1Y2EzM2NjNGY4NWM0MmZmYTI3YmU5Y2UyMWI3M2JjMCJ9.GAxgg6Ht2oCS8zxHdwQw9kSD6RHeQOWYaDOcnQB5RElewQKvZmcNWi-YJdInJ5iXTE9r9tGVIN7fhFJL7f-hhL1PK2RVzZHD8qyfkMWcCEF5GUvp8rDX4GDrSkqjpUD44teWYkOy9Nb-3pOGzRIC7qs88uSxMz7hfil4I_HmjF4AAPIi4j3QZhp0lqrXzzf7vt6NLlizDFa2XTcPf_vQqReFu3A_5iWfy8XmLlC7QIixeVv2IE-ahRqM_UDCf5Dg3n2WpYvmP5jcSPFOLoT7sMimyeaPBna793boiX2swmeGHQ23tx1nFavCUavGv_cDRAvzVXCJ2NROTJ5unHiN7CXEbzm4Rg-65tY4D0YynTU8L6t0gYtXYYY9_wi1xNs-cShAmCMh1ySJn9nBcq4ydvH7eQnhSEvoK0bPsN_vWJCgOQBQyOdpTfRMU6piAy9H1zJ0KzsSzuKSS8fX0m9oN7narZPl34DTiEUTDeW8_SS6vJjHr_Q9O_X4mVeeQhH2ocN_4M9R6A89tmQ2jObuWm-cu1Yk-G6FSPUONhsoC_99nQnICS4mAuCWWDHxFY61hIrreVZBSH053MgfSaG2sqTb26MkxKWx-TP1sx18pb1xmo4IQEwILIbLlSPA3vafbrbQO5RQcm3UYKtYwev0vAlL5taXiTuLEyPscdzv0Sc"
+         edpm_bootstrap_command: |
+           subscription-manager register --username "{{ subscription_manager_username }}" --password "{{ subscription_manager_password }}"
+           sudo subscription-manager release --set=9.4
+           sudo subscription-manager repos --disable=*
+           sudo subscription-manager repos --enable=rhel-9-for-x86_64-baseos-eus-rpms --enable=rhel-9-for-x86_64-appstream-eus-rpms --enable=rhel-9-for-x86_64-highavailability-eus-rpms --enable=fast-datapath-for-rhel-9-x86_64-rpms --enable=rhoso-18.0-for-rhel-9-x86_64-rpms --enable=rhceph-7-tools-for-rhel-9-x86_64-rpms
+----
+

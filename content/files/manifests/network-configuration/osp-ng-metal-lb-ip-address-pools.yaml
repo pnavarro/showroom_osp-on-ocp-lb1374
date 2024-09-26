@@ -1,0 +1,44 @@
+---
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  namespace: metallb-system
+  name: ctlplane
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  addresses:
+  - 172.22.0.80-172.22.0.90
+---
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  namespace: metallb-system
+  name: internalapi
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  addresses:
+  - 172.17.0.80-172.17.0.90
+---
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  namespace: metallb-system
+  name: storage
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  addresses:
+  - 172.18.0.80-172.18.0.90
+---
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  namespace: metallb-system
+  name: tenant
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  addresses:
+  - 172.19.0.80-172.19.0.90

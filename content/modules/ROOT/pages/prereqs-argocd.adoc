@@ -1,0 +1,159 @@
+= Configuration, Installation, and Use of Red Hat OpenStack Services on OpenShift
+
+== Access Your Lab Environment
+
+During this lab you will be instructed to ssh to your hypervisor at IP address {bastion_public_hostname}.
+Use username `{bastion_ssh_user_name}` and password `{bastion_ssh_password}`.
+
+Once logged in the hypervisor you can access to the bastion at IP address `192.168.123.100` as `root` using password `redhat`.
+
+If needed, you can navigate to the OpenShift console URL: {ocp_console_url}[{ocp_console_url}^] using user `admin` and password `{ocp_admin_password}`
+
+== Prerequisites for Installation
+
+Some prerequisites needed to install Red Hat OpenStack Services on OpenShift (RHOSO) are already included in the lab environment such as:
+
+* An operational OpenShift cluster which supports Multus CNI
+* oc command line tool on your workstation (bastion host)
+* k9s command line tool on your workstation (bastion host)
+* podman command line tool on your workstation (bastion host)
+* Access to repositories which contain the Dev Preview code
+* Access to an existing registry or create a local Quay registry
+* Example YAML files are available in this repository which can be cloned or copy and pasted for use.
+For ease of instructions it will be assumed the repo has been cloned
+
+=== Install the Prerequisite Operators
+
+There are three operators that are required to be installed before you can install the OpenStack Operator, the https://access.redhat.com/documentation/en-us/openshift_container_platform/4.13/html/networking/kubernetes-nmstate#installing-the-kubernetes-nmstate-operator-cli[NMState  Operator^] the https://access.redhat.com/documentation/en-us/openshift_container_platform/4.13/html/networking/load-balancing-with-metallb#nw-metallb-installing-operator-cli_metallb-operator-install[MetalLB  Operator^]  and the https://docs.openshift.com/container-platform/4.14///security/cert_manager_operator/cert-manager-operator-install.html[Cert-Manager + Operator^]
+
+==== Accessing the Cluster
+
+From the hypervisor, log in to the bastion
+
+[source,bash,role=execute]
+----
+sudo -i
+ssh root@192.168.123.100
+----
+
+Password is `redhat`.
+
+.Sample Output
+----
+[root@ocp4-bastion ~]
+----
+
+Make sure you can reach out to the OpenShift cluster, for instance, by listing the nodes in your cluster:
+
+[source,bash,role=execute]
+----
+oc get nodes
+----
+
+.Sample Output
+----
+NAME                           STATUS   ROLES                  AGE   VERSION
+ocp4-master1.aio.example.com   Ready    control-plane,master   26h   v1.25.16+9946c63
+ocp4-master2.aio.example.com   Ready    control-plane,master   26h   v1.25.16+9946c63
+ocp4-master3.aio.example.com   Ready    control-plane,master   26h   v1.25.16+9946c63
+ocp4-worker1.aio.example.com   Ready    worker                 25h   v1.25.16+9946c63
+ocp4-worker2.aio.example.com   Ready    worker                 25h   v1.25.16+9946c63
+ocp4-worker3.aio.example.com   Ready    worker                 25h   v1.25.16+9946c63
+----
+
+==== Install Argocd
+
+Create the *argocd* Operator namespace:
+
+[source,bash,role=execute]
+----
+cat << EOF | oc apply -f -
+apiVersion: v1
+kind: Namespace
+metadata:
+    name: openshift-gitops-operator
+    labels:
+      pod-security.kubernetes.io/enforce: privileged
+      security.openshift.io/scc.podSecurityLabelSync: "false"
+EOF
+----
+
+Create the *OperatorGroup*:
+[source,bash,role=execute]
+----
+cat << EOF | oc apply -f -
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  generateName: openshift-gitops-operator-
+  name: openshift-gitops-operator-b8wcv
+  namespace: openshift-gitops-operator
+spec:
+  upgradeStrategy: Default
+EOF
+----
+
+Confirm the OperatorGroup is installed in the namespace:
+
+[source,bash,role=execute]
+----
+oc get operatorgroup -n openshift-gitops-operator
+----
+
+Subscribe to the *argocd* Operator:
+
+[source,bash,role=execute]
+----
+cat << EOF | oc apply -f -
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  generation: 1
+  labels:
+    operators.coreos.com/openshift-gitops-operator.openshift-gitops-operator: ""
+  name: openshift-gitops-operator
+  namespace: openshift-gitops-operator
+spec:
+  channel: latest
+  installPlanApproval: Automatic
+  name: openshift-gitops-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  startingCSV: openshift-gitops-operator.v1.12.0
+EOF
+----
+
+Confirm that argocd operator is running.
+Execute the following command until you see the Phase Field is succeeded (Press Control+C to exit the command):
+
+[source,bash,role=execute]
+----
+oc get clusterserviceversion -n openshift-gitops-operator  -o custom-columns=Name:.metadata.name,Phase:.status.phase -w
+----
+
+Give the ServiceAccount for ArgoCD the ability to manage the cluster:
+[source,bash,role=execute]
+----
+oc adm policy add-cluster-role-to-user cluster-admin -z openshift-gitops-argocd-application-controller -n openshift-gitops
+----
+Connecting to OpenShift Gitops
+OpenShift Gitops generates a default admin user, and a random password when first deployed.
+
+Extract the password from the admin user Secret:
+
+[source,bash,role=execute]
+----
+argoPass=$(oc get secret/openshift-gitops-cluster -n openshift-gitops -o jsonpath='{.data.admin\.password}' | base64 -d)
+echo $argoPass
+----
+
+Get the Route for the OpenShift Gitops/OpenShift GitOps server:
+[source,bash,role=execute]
+----
+argoURL=$(oc get route openshift-gitops-server -n openshift-gitops -o jsonpath='{.spec.host}{"\n"}')
+echo $argoURL
+----
+
+Access the OpenShift Gitops console by logging in with the username admin and the password extracted in the previous step.
+
+image::1_argo_apps.png[Argocd Prerequisites]

@@ -1,0 +1,26 @@
+# Install and discover RHOSO using Gitops ArgoCD - Break & fix
+
+Welcome to the Red Hat OpenStack Services on OpenShift (RHOSO) using ArgoCD lab instructions.
+These instructions will guide you through the installation of the next generation of Red Hat's OpenStack product onto an existing OpenShift Cluster utilizing a bastion host and a single host for the data plane.
+
+In this lab, you will use the following infrastructure:
+
+* A 3 OCP controller + 3 OCP workers nodes 4.16 OCP cluster
+* A bastion host to access to the OCP environment
+* A RHEL 9.4 virtualised compute host
+
+In this lab, you will cover the following topics:
+
+* xref:prereqs-argocd-bf.adoc[Perform Prerequisite Operations]
+* xref:prereqs.adoc[Install the Operators prerequisites using OpenShift gitops]
+* xref:install-operators-bf.adoc[Install the Red Hat OpenStack Platform Service Operators using OpenShift gitops]
+* xref:network-isolation-bf.adoc[Prepare OCP for OpenStack Network Isolation using OpenShift gitops]
+* xref:deploy-control-plane-bf.adoc[Deploy RHOSO control plane using OpenShift gitops]
+* xref:deploy-data-plane-bf.adoc[Deploy RHOSO data plane using OpenShift gitops]
+* xref:access.adoc[Access OpenStack]
+* xref:scale-out.adoc[Scale Out your deployment using Cluster Baremetal Operator provisioned nodes]
+
+Within the lab environment, you will be able to copy and paste the specified commands into the CLI.
+For some steps you may also need to edit some of the commands from the  instructions.
+
+*Be sure to review all commands carefully both for functionality and syntax!*

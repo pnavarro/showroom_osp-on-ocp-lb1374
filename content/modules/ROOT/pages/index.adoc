@@ -3,10 +3,12 @@
 Welcome to the Red Hat OpenStack Services on OpenShift (RHOSO) lab instructions.
 These instructions will guide you through the installation of the next generation of Red Hat's OpenStack product onto an existing OpenShift Cluster utilizing a bastion host and a single host for the data plane.
 
-You have two installation options: 
+You have four installation options: 
 
 * xref:connected.adoc[Install RHOSO using CDN - Connected environment]
 * xref:disconnected.adoc[Install RHOSO using Satellite and Quay - Disconnected Environment]
+* xref:gitops.adoc[Install and discover RHOSO using Gitops ArgoCD]
+* xref:breakfix.adoc[Install and discover RHOSO using Gitops ArgoCD. Break & Fix]
 
 Within the lab environment, you will be able to copy and paste the specified commands into the CLI.
 For some steps you may also need to edit some of the commands from the  instructions.

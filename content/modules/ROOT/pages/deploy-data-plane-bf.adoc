@@ -1,0 +1,165 @@
+= Install RHOSO 18 dataplane
+
+== Create secret for the subcription manager credentials
+
+Create a secret for the subscription manager and a secret for the Red Hat registry:
+
+[source,bash,role=execute]
+----
+echo -n "your_username" | base64
+echo -n "your_password" | base64
+----
+
+[source,bash,role=execute]
+----
+oc apply -f - <<EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: subscription-manager
+  namespace: openstack
+data:
+  username: <base64 encoded subscription-manager username>
+  password: <base64 encoded subscription-manager password>
+EOF
+----
+
+
+== Using OpenShift Gitops application to install RHOSO data plane
+
+Create an argocd application manifest to deploy the RHOSO data plane:
+
+WARNING: Replace $YOUR_REPO_URL by your forked github repo
+
+[source,bash,role=execute]
+----
+cat << EOF | oc apply -f -
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: openstack-deployment-data-plane
+  namespace: openshift-gitops
+spec:
+  project: default
+  source:
+    repoURL: $YOUR_REPO_URL
+    targetRevision: HEAD
+    path: content/files/manifests/openstack-data-plane-deployment
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: false
+    syncOptions:
+    - CreateNamespace=true
+EOF
+----
+
+*Exercise* The data plane creation is failing. Check *OpenStackDataPlaneDeployment* CRD and figure out what it's failing using the following commands:
+
+[source,bash,role=execute]
+----
+oc get openstackdataplanedeployment
+----
+*OpenStackDataPlaneNodeSet* CRD creates a set of generic Compute nodes with some node-specific configuration.
+
+[source,bash,role=execute]
+----
+oc get openstackdataplanenodeset
+----
+
+From the *bastion server* access the RHOSO operators pods:
+
+[source,bash,role=execute]
+----
+oc get pods -n openstack-operators
+----
+
+.Sample Output
+----
+NAME                                                              READY   STATUS    RESTARTS   AGE
+barbican-operator-controller-manager-7fb68ff6cb-8zhnf             2/2     Running   0          38m
+cinder-operator-controller-manager-c8f77fcfb-cjwl5                2/2     Running   0          37m
+designate-operator-controller-manager-78b49498cf-s24nj            2/2     Running   0          37m
+glance-operator-controller-manager-58996fbd7d-g9xvg               2/2     Running   0          37m
+heat-operator-controller-manager-74c6c75fd7-qnx2r                 2/2     Running   0          38m
+horizon-operator-controller-manager-76459c97c9-689qv              2/2     Running   0          37m
+infra-operator-controller-manager-77fccf5fc5-6k9zk                2/2     Running   0          38m
+ironic-operator-controller-manager-6bd9577485-26ldg               2/2     Running   0          36m
+keystone-operator-controller-manager-59b77787bb-cqxsq             2/2     Running   0          37m
+manila-operator-controller-manager-5c87bb85f4-pnr7p               2/2     Running   0          38m
+mariadb-operator-controller-manager-869fb6f6fd-5n8d6              2/2     Running   0          37m
+neutron-operator-controller-manager-75f674c89c-22mcx              2/2     Running   0          38m
+nova-operator-controller-manager-544c56f75b-s7c7s                 2/2     Running   0          38m
+octavia-operator-controller-manager-5b9c8db7d6-r4sg5              2/2     Running   0          38m
+openstack-ansibleee-operator-controller-manager-5dddc7ccb99kmmp   2/2     Running   0          37m
+openstack-baremetal-operator-controller-manager-77975546555v9m5   2/2     Running   0          38m
+openstack-operator-controller-manager-cfcf84546-4cbwb             2/2     Running   0          37m
+ovn-operator-controller-manager-6d77f744c4-g2lm8                  2/2     Running   0          36m
+placement-operator-controller-manager-84dc689f7c-trfxb            2/2     Running   0          37m
+rabbitmq-cluster-operator-7d6b597db7-mtknb                        1/1     Running   0          37m
+swift-operator-controller-manager-5fdb4c94d9-bp9l6                2/2     Running   0          37m
+telemetry-operator-controller-manager-564b55fd8-tzmcb             2/2     Running   0          38m
+----
+
+In order to debug any issues in your data plane deployment, get the logs of the *openstack-operator-controller-manager*:
+
+.Sample Output
+----
+oc logs openstack-operator-controller-manager-cfcf84546-4cbwb -n openstack-operators
+----
+Fix it using the official documentation: https://docs.redhat.com/en/documentation/red_hat_openstack_services_on_openshift/18.0/html/deploying_red_hat_openstack_services_on_openshift/assembly_creating-the-data-plane
+
+Git commit your changes in your repo and push the changes into your repo. Sync the application in the ArgoCD UI.
+
+Access the OpenShift Gitops console to check the deployment of the RHOSO operators
+
+image::6_deploy_rhoso_dataplane.png[Deployed RHOSO Dataplane]
+
+Click on the *openstack-deployment-data-plane* Gitops application to access to the dataplane deployment:
+
+image::7_inspect_jobs_data_plane.png[Deployed RHOSO Dataplane]
+
+Click on the *bootstrap-openstack-edpm-ipam-openstack-edpm-ipam* job to access to the logs of the deployment:
+
+image::8_details_job.png[Deployed RHOSO Dataplane]
+
+Follow the progress of all the logs until finished as in the image
+
+image::9_all_jobs_finished.png[Deployed RHOSO Dataplane]
+
+You use the *OpenStackDataPlaneDeployment* CRD to configure the services on the data plane nodes and deploy the data plane. Verify that the data plane is deployed.
+
+[source,bash,role=execute]
+----
+oc get openstackdataplanedeployment
+----
+.Sample Output
+[source,bash]
+----
+NAME                  STATUS   MESSAGE
+openstack-edpm-ipam   True     Setup Complete
+----
+
+*OpenStackDataPlaneNodeSet* CRD creates a set of generic Compute nodes with some node-specific configuration.
+
+[source,bash,role=execute]
+----
+oc get openstackdataplanenodeset
+----
+
+.Sample Output
+[source,bash]
+----
+NAME                  STATUS   MESSAGE
+openstack-edpm-ipam   True     NodeSet Ready
+----
+
+In this example a pre-provisioned compute *edpm-compute-0* has been defined in the openstack-edpm-ipam *OpenStackDataPlaneNodeSet* CRD. You can describe this resource to explore the compute configuration:
+
+[source,bash,role=execute]
+----
+oc describe openstackdataplanenodeset openstack-edpm-ipam -n openstack
+----

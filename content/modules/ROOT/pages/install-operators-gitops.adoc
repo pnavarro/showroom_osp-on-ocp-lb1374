@@ -1,0 +1,96 @@
+= Install the OpenStack Operator
+
+== Using ArgoCD application to install RHOSO operators
+
+The Red Hat OpenStack Services on OpenShift (RHOSO) IaaS services are implemented as a collection of Operators running on a Red Hat OpenShift Container Platform (RHOCP) cluster. These Operators manage the compute, storage, networking, and other services for your RHOSO cloud.
+
+The OpenStack Operator (openstack-operator) installs all the required RHOSO service Operators and is the interface that you use to manage those Operators. 
+
+The basic architecture of a Red Hat OpenStack Services on OpenShift (RHOSO) environment includes the following features:
+
+* **Container-native application delivery**: RHOSO is delivered by using a container-native approach that spans the Red Hat OpenShift Container Platform (RHOCP) and RHEL platforms to deliver a container-native RHOSO deployment.
+* **RHOCP-hosted services**: RHOCP hosts infrastructure services and RHOSO controller services by using RHOCP Operators to provide lifecycle management.
+* **Ansible-managed RHEL-hosted service**: RHOSO workloads run on RHEL nodes that are managed by a dedicated DataPlane Operator. The DataPlane Operator runs Ansible jobs to configure the RHEL data plane nodes, such as the Compute nodes. RHOCP manages provisioning, DNS, and configuration management.
+* **Installer-provisioned infrastructure**: The RHOSO installer enables installer-provisioned infrastructure that uses RHOSO bare-metal machine management to provision the Compute nodes for the RHOSO cloud.
+* **User-provisioned infrastructure**: If you have your own machine ingest and provisioning workflow, you can use the RHOSO pre-provisioned model to add your pre-provisioned hardware into your RHOSO environment, while receiving the benefits of a container-native workflow.
+* **Hosted RHOSO client**: RHOSO provides a host openstackclient pod that is preconfigured with administrator access to the deployed RHOSO environment.
+
+
+Create an argocd application manifest to deploy the prerequisites for the RHOSO control plane installation:
+
+[source,bash,role=execute]
+----
+cat << EOF | oc apply -f -
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: openstack-operators-installation
+  namespace: openshift-gitops
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/pnavarro/showroom_osp-on-ocp-lb1374.git'
+    targetRevision: HEAD
+    path: content/files/manifests/openstack-operators-installation
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: false
+    syncOptions:
+    - CreateNamespace=true
+EOF
+----
+Access the OpenShift Gitops console to check the deployment of the RHOSO operators
+
+image::3_openstack_operators_installation.png[OpenStack Operators Installation]
+
+. Review the pods in the **openstack-operators** namespace:
++
+[source,bash,role=execute]
+----
+oc get pods -n openstack-operators
+----
+
+. If you run:
++
+[source, bash,role=execute]
+----
+oc get pods -n openstack-operators --sort-by=.metadata.creationTimestamp
+----
++
+You should see a list of completed pods and then the running openstack services pods.
+It should look like:
++
+.Sample Output
+----
+(...)
+[root@ocp4-bastion ~]# oc get pods -n openstack-operators
+NAME                                                              READY   STATUS    RESTARTS   AGE
+barbican-operator-controller-manager-7cb5df8b9b-mqxmx             2/2     Running   0          110s
+cinder-operator-controller-manager-59f9c8cf97-f929f               2/2     Running   0          68s
+designate-operator-controller-manager-6d89ccd959-t7blw            2/2     Running   0          102s
+glance-operator-controller-manager-7bbfcf9c56-lv54c               2/2     Running   0          58s
+heat-operator-controller-manager-5c7646c989-b6ntp                 2/2     Running   0          91s
+horizon-operator-controller-manager-7784f8bcff-g2xbj              2/2     Running   0          2m31s
+infra-operator-controller-manager-666fc544fb-tqbrf                2/2     Running   0          113s
+ironic-operator-controller-manager-6d7b68dbd-g55s2                2/2     Running   0          43s
+keystone-operator-controller-manager-745565f898-2qjnq             2/2     Running   0          58s
+manila-operator-controller-manager-6bd5895b5b-r2zwn               2/2     Running   0          74s
+mariadb-operator-controller-manager-6947755d96-d2crb              2/2     Running   0          2m16s
+neutron-operator-controller-manager-7dbdc7c9f6-c2mq9              2/2     Running   0          2m27s
+nova-operator-controller-manager-7d55cc4d88-tfjn4                 2/2     Running   0          72s
+octavia-operator-controller-manager-54748ddf69-5m8nl              2/2     Running   0          2m32s
+openstack-ansibleee-operator-controller-manager-fbb45f87b-rwrpq   2/2     Running   0          2m23s
+openstack-baremetal-operator-controller-manager-68bc9c44f-l9n24   2/2     Running   0          2m8s
+openstack-operator-controller-manager-7b74cd65df-h7tnj            2/2     Running   0          43s
+ovn-operator-controller-manager-67695db68b-q6qwc                  2/2     Running   0          82s
+placement-operator-controller-manager-5c8f6599d7-nqd6s            2/2     Running   0          94s
+rabbitmq-cluster-operator-7d6b597db7-khtb6                        1/1     Running   0          106s
+swift-operator-controller-manager-7f66c7b854-l5tpm                2/2     Running   0          56s
+telemetry-operator-controller-manager-564ff5ccdf-bfn9h            2/2     Running   0          2m9s
+(...)
+----
+

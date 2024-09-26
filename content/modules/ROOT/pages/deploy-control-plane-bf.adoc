@@ -1,0 +1,287 @@
+= Install RHOSO 18 control plane
+
+== Create an NFS share for cinder and glance
+
+In the bastion host:
+
+[source,bash,role=execute]
+----
+mkdir /nfs/cinder
+chmod 777 /nfs/cinder
+mkdir /nfs/glance
+chmod 777 /nfs/glance
+----
+
+== Create VM for Dataplane
+
+In the hypervisor host:
+
+Escalate to root:
+[source,bash,role=execute]
+----
+sudo -i
+----
+
+Create the *RHEL compute* on lab-user (*hypervisor*) server:
+
+[source,bash,role=execute]
+----
+cd /var/lib/libvirt/images
+cp rhel-9.4-x86_64-kvm.qcow2 rhel9-guest.qcow2
+qemu-img info rhel9-guest.qcow2
+qemu-img resize rhel9-guest.qcow2 +90G
+chown -R qemu:qemu rhel9-*.qcow2
+virt-customize -a rhel9-guest.qcow2 --run-command 'growpart /dev/sda 4'
+virt-customize -a rhel9-guest.qcow2 --run-command 'xfs_growfs /'
+virt-customize -a rhel9-guest.qcow2 --root-password password:redhat
+virt-customize -a rhel9-guest.qcow2 --run-command 'systemctl disable cloud-init'
+virt-customize -a /var/lib/libvirt/images/rhel9-guest.qcow2 --ssh-inject root:file:/root/.ssh/id_rsa.pub
+virt-customize -a /var/lib/libvirt/images/rhel9-guest.qcow2 --selinux-relabel
+qemu-img create -f qcow2 -F qcow2 -b /var/lib/libvirt/images/rhel9-guest.qcow2 /var/lib/libvirt/images/osp-compute-0.qcow2
+virt-install --virt-type kvm --ram 16384 --vcpus 4 --cpu=host-passthrough --os-variant rhel8.4 --disk path=/var/lib/libvirt/images/osp-compute-0.qcow2,device=disk,bus=virtio,format=qcow2 --network network:ocp4-provisioning --network network:ocp4-net --boot hd,network --noautoconsole --vnc --name osp-compute0 --noreboot
+virsh start osp-compute0
+
+----
+
+=== Login to the Compute and Verify
+
+Verify IP from 192.168.123.0/24
+
+[source,bash,role=execute]
+----
+watch virsh domifaddr osp-compute0 --source agent
+----
+
+.Sample Output
+[source,bash]
+----
+Every 2.0s: virsh domifaddr osp-compute0 --source agent                                                                                                 hypervisor: Wed Apr 17 07:03:13 2024
+
+ Name       MAC address          Protocol     Address
+-------------------------------------------------------------------------------
+ lo         00:00:00:00:00:00    ipv4         127.0.0.1/8
+ -          -                    ipv6         ::1/128
+ eth0       52:54:00:c0:0a:26    ipv4         172.22.0.202/24
+ -          -                    ipv6         fe80::16:d083:92f4:f201/64
+ eth1       52:54:00:e5:ce:09    ipv4         192.168.123.61/24
+ -          -                    ipv6         fe80::bfc0:e5db:a655:729f/64
+----
+
+(CTRL + C to continue)
+
+[source,bash,role=execute]
+----
+virsh domifaddr osp-compute0 --source agent
+----
+
+Use the IP assigned to `eth1` above in the next step.
+
+=== Configure Ethernet Devices on New Compute
+
+SSH to the new VM.
+There is no password.
+
+[source,bash,role=execute]
+----
+ssh root@192.168.123.61
+----
+
+[source,bash,role=execute]
+----
+nmcli co delete 'Wired connection 1'
+nmcli con add con-name "static-eth0" ifname eth0 type ethernet ip4 172.22.0.100/24 ipv4.dns "172.22.0.89"
+nmcli con up "static-eth0"
+nmcli co delete 'Wired connection 2'
+nmcli con add con-name "static-eth1" ifname eth1 type ethernet ip4 192.168.123.61/24 ipv4.dns "192.168.123.100" ipv4.gateway "192.168.123.1"
+nmcli con up "static-eth1"
+----
+
+And log off VM
+
+[source,bash,role=execute]
+----
+logout
+----
+
+Set SSH key
+
+[source,bash,role=execute]
+----
+sudo -i
+scp /root/.ssh/id_rsa root@192.168.123.100:/root/.ssh/id_rsa_compute
+scp /root/.ssh/id_rsa.pub root@192.168.123.100:/root/.ssh/id_rsa_compute.pub
+----
+
+WARNING: This might error initially because of unknown hosts file.
+Retry to make sure both files are copied.
+
+Connect to the *bastion* server:
+
+[source,bash,role=execute]
+----
+sudo -i
+ssh root@192.168.123.100
+----
+
+.Sample Output
+----
+[root@ocp4-bastion ~] #
+----
+
+Create Secret
+
+[source,bash,role=execute]
+----
+oc create secret generic dataplane-ansible-ssh-private-key-secret --save-config --dry-run=client --from-file=authorized_keys=/root/.ssh/id_rsa_compute.pub --from-file=ssh-privatekey=/root/.ssh/id_rsa_compute --from-file=ssh-publickey=/root/.ssh/id_rsa_compute.pub -n openstack -o yaml | oc apply -f-
+----
+
+== Using OpenShift Gitops application to install RHOSO control plane
+
+Create an argocd application manifest to initiate the RHOSO control plane installation:
+
+WARNING: Replace $YOUR_REPO_URL by your forked github repo
+
+[source,bash,role=execute]
+----
+cat << EOF | oc apply -f -
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: openstack-deployment-control-plane
+  namespace: openshift-gitops
+spec:
+  project: default
+  source:
+    repoURL: '$YOUR_REPO_URL'
+    targetRevision: HEAD
+    path: content/files/manifests/openstack-control-plane-deployment
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: false
+    syncOptions:
+    - CreateNamespace=true
+EOF
+----
+
+Access the OpenShift Gitops console to check the deployment of the RHOSO operators
+
+image::5_deploy_rhoso_control_plane.png[Deployed RHOSO control plane]
+
+OpenStack control plane deployment is managed by *openstackcontrolplane* CR.
+
+*Exercise* The OpenStackControlPlane created is failing. Check what it's failing using the following commands:
+
+[source,bash,role=execute]
+----
+oc get openstackcontrolplane -n openstack
+----
+
+From the *bastion server* access the RHOSO operators pods:
+
+[source,bash,role=execute]
+----
+oc get pods -n openstack-operators
+----
+
+.Sample Output
+----
+NAME                                                              READY   STATUS    RESTARTS   AGE
+barbican-operator-controller-manager-7fb68ff6cb-8zhnf             2/2     Running   0          38m
+cinder-operator-controller-manager-c8f77fcfb-cjwl5                2/2     Running   0          37m
+designate-operator-controller-manager-78b49498cf-s24nj            2/2     Running   0          37m
+glance-operator-controller-manager-58996fbd7d-g9xvg               2/2     Running   0          37m
+heat-operator-controller-manager-74c6c75fd7-qnx2r                 2/2     Running   0          38m
+horizon-operator-controller-manager-76459c97c9-689qv              2/2     Running   0          37m
+infra-operator-controller-manager-77fccf5fc5-6k9zk                2/2     Running   0          38m
+ironic-operator-controller-manager-6bd9577485-26ldg               2/2     Running   0          36m
+keystone-operator-controller-manager-59b77787bb-cqxsq             2/2     Running   0          37m
+manila-operator-controller-manager-5c87bb85f4-pnr7p               2/2     Running   0          38m
+mariadb-operator-controller-manager-869fb6f6fd-5n8d6              2/2     Running   0          37m
+neutron-operator-controller-manager-75f674c89c-22mcx              2/2     Running   0          38m
+nova-operator-controller-manager-544c56f75b-s7c7s                 2/2     Running   0          38m
+octavia-operator-controller-manager-5b9c8db7d6-r4sg5              2/2     Running   0          38m
+openstack-ansibleee-operator-controller-manager-5dddc7ccb99kmmp   2/2     Running   0          37m
+openstack-baremetal-operator-controller-manager-77975546555v9m5   2/2     Running   0          38m
+openstack-operator-controller-manager-cfcf84546-4cbwb             2/2     Running   0          37m
+ovn-operator-controller-manager-6d77f744c4-g2lm8                  2/2     Running   0          36m
+placement-operator-controller-manager-84dc689f7c-trfxb            2/2     Running   0          37m
+rabbitmq-cluster-operator-7d6b597db7-mtknb                        1/1     Running   0          37m
+swift-operator-controller-manager-5fdb4c94d9-bp9l6                2/2     Running   0          37m
+telemetry-operator-controller-manager-564b55fd8-tzmcb             2/2     Running   0          38m
+----
+
+In order to debug any issues in your control plane deployment, get the logs of the *openstack-operator-controller-manager*:
+
+.Sample Output
+----
+oc logs openstack-operator-controller-manager-cfcf84546-4cbwb -n openstack-operators
+----
+Fix it using the official documentation: https://docs.redhat.com/en/documentation/red_hat_openstack_services_on_openshift/18.0/html/deploying_red_hat_openstack_services_on_openshift/assembly_creating-the-control-plane#proc_creating-the-control-plane_controlplane
+
+Git commit your changes in your repo and push the changes into your repo. Sync the application in the ArgoCD UI.
+
+The OpenStackControlPlane resources are created when the status is "Setup complete". Verify the status typing the following command:
+
+[source,bash,role=execute]
+----
+oc get openstackcontrolplane -n openstack
+----
+
+.Sample Output
+[source,bash]
+----
+NAME                                 STATUS   MESSAGE
+openstack-galera-network-isolation   True     Setup complete
+----
+
+Confirm that the control plane is deployed by reviewing the pods in the openstack namespace
+
+[source,bash,role=execute]
+----
+oc get pods -n openstack
+----
+
+.Sample Output
+[source,bash]
+----
+[root@ocp4-bastion ~]# oc get pods -n openstack
+NAME                                                              READY   STATUS      RESTARTS        AGE
+ceilometer-0                                                      4/4     Running     0               4h11m
+cinder-api-0                                                      2/2     Running     0               4h14m
+cinder-scheduler-0                                                2/2     Running     0               4h14m
+cinder-volume-nfs-0                                               2/2     Running     0               4h14m
+dnsmasq-dns-785476d85c-q87x5                                      1/1     Running     0               4h8m
+glance-default-single-0                                           3/3     Running     0               4h14m
+keystone-759744994c-ztqr7                                         1/1     Running     0               4h14m
+keystone-cron-28684081-8fvbq                                      0/1     Completed   0               155m
+keystone-cron-28684141-bnrr4                                      0/1     Completed   0               95m
+keystone-cron-28684201-7lpx2                                      0/1     Completed   0               35m
+libvirt-openstack-edpm-ipam-openstack-edpm-ipam-wlgbl             0/1     Completed   0               3h58m
+memcached-0                                                       1/1     Running     0               4h15m
+neutron-b594879db-r8l9k                                           2/2     Running     0               4h14m
+nova-api-0                                                        2/2     Running     0               4h12m
+nova-cell0-conductor-0                                            1/1     Running     0               4h13m
+nova-cell1-conductor-0                                            1/1     Running     0               4h12m
+nova-cell1-novncproxy-0                                           1/1     Running     0               4h12m
+nova-metadata-0                                                   2/2     Running     0               4h12m
+nova-scheduler-0                                                  1/1     Running     0               4h12m
+openstack-cell1-galera-0                                          1/1     Running     0               4h15m
+openstack-galera-0                                                1/1     Running     0               4h15m
+openstackclient                                                   1/1     Running     0               4h13m
+ovn-controller-8t267                                              1/1     Running     0               4h15m
+ovn-controller-8xdhd                                              1/1     Running     0               4h15m
+ovn-controller-j4fqt                                              1/1     Running     0               4h15m
+ovn-controller-ovs-qvbxj                                          2/2     Running     1 (4h15m ago)   4h15m
+ovn-controller-ovs-t27w4                                          2/2     Running     0               4h15m
+ovn-controller-ovs-vgz2q                                          2/2     Running     0               4h15m
+ovn-northd-7cfb5878d7-cxn8b                                       1/1     Running     0               4h15m
+ovsdbserver-nb-0                                                  1/1     Running     0               4h15m
+ovsdbserver-sb-0                                                  1/1     Running     0               4h15m
+placement-867d4646d7-vmk78                                        2/2     Running     0               4h14m
+rabbitmq-cell1-server-0                                           1/1     Running     0               4h15m
+rabbitmq-server-0                                                 1/1     Running     0               4h15m
+----

@@ -1,0 +1,150 @@
+= Install pre-requisites
+
+== Using ArgoCD application to install RHOSO pre-requisites
+
+Create an argocd application manifest to deploy all the prerequisites for the RHOSO control plane installation:
+
+[source,bash,role=execute]
+----
+cat << EOF | oc apply -f -
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: pre-requisites-operators-installation
+  namespace: openshift-gitops
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/pnavarro/showroom_osp-on-ocp-lb1374.git'
+    targetRevision: HEAD
+    path: content/files/manifests/pre-reqs-operators
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: false
+    syncOptions:
+    - CreateNamespace=true
+EOF
+----
+
+Access the OpenShift Gitops console by logging in with the username admin and the password:
+
+Extract the password from the admin user Secret:
+
+[source,bash,role=execute]
+----
+argoPass=$(oc get secret/openshift-gitops-cluster -n openshift-gitops -o jsonpath='{.data.admin\.password}' | base64 -d)
+echo $argoPass
+----
+
+Get the Route for the OpenShift Gitops/OpenShift GitOps server:
+[source,bash,role=execute]
+----
+argoURL=$(oc get route openshift-gitops-server -n openshift-gitops -o jsonpath='{.spec.host}{"\n"}')
+echo $argoURL
+----
+
+You should see that the pre-requisites-operators-installation is completed
+
+image::2_pre_requisites_operators_installation.png[Prerequisites Operators Installation]
+
+Create a single instance of a *metallb* resource:
+
+[source,bash,role=execute]
+----
+cat << EOF | oc apply -f -
+apiVersion: metallb.io/v1beta1
+kind: MetalLB
+metadata:
+  name: metallb
+  namespace: metallb-system
+spec:
+  nodeSelector:
+    node-role.kubernetes.io/worker: ""
+EOF
+----
+
+Create instance of the *nmstate* operator:
+
+[source,bash,role=execute]
+----
+cat << EOF | oc apply -f -
+apiVersion: nmstate.io/v1
+kind: NMState
+metadata:
+  name: nmstate
+EOF
+----
+
+=== NMState Operator
+
+The NMState Operator in OpenShift is a Kubernetes Operator that provides a declarative way to manage node network configurations across an OpenShift cluster. It utilizes the Node Network Configuration Policy (NNCP) to drive the desired network state across cluster nodes, leveraging the NMState project under the hood. It's mainly used when configuring OpenShift nodes to configure network isolation for the OpenStack services networks. It can also very used to configure networking in the Compute Nodes. 
+
+Verify that NMstate pods are up and running by entering the following command:
+
+[source,bash,role=execute]
+----
+oc get pods -n openshift-nmstate
+----
+
+.Sample Output
+----
+NAME                                   READY   STATUS    RESTARTS   AGE
+nmstate-cert-manager-5c5c74ff7-ncx2j   1/1     Running   0          51m
+nmstate-handler-6nh4g                  1/1     Running   0          51m
+nmstate-handler-9vsbf                  1/1     Running   0          51m
+nmstate-handler-dw62t                  1/1     Running   0          51m
+nmstate-handler-lj5dq                  1/1     Running   0          51m
+nmstate-handler-nx76q                  1/1     Running   0          51m
+nmstate-handler-v4t89                  1/1     Running   0          51m
+nmstate-operator-59dfc7f98c-9srbg      1/1     Running   0          53m
+nmstate-webhook-6b86f95fc4-4pxkg       1/1     Running   0          51m
+nmstate-webhook-6b86f95fc4-rgq9j       1/1     Running   0          51m
+----
+
+
+=== MetalLB Operator
+
+MetalLB is a load balancer implementation for bare metal Kubernetes clusters, providing a network load balancing solution that integrates with standard network equipment. In environments where external load balancers like those provided by cloud providers (AWS ELB, Google Cloud Load Balancer, etc.) are unavailable, MetalLB fills that gap by offering load-balancing services.
+
+In RHOSO, we use the L2 layer mode. In this mode, MetalLB responds to Address Resolution Protocol (ARP) requests for the IP address of the Service, essentially "claiming" the IP address on the local network. When a client sends traffic to that IP address, MetalLB forwards the traffic to one of the Service's Pods.
+
+Verify that MetalLB pods are up and running by entering the following command:
+
+[source,bash,role=execute]
+----
+oc get pods -n metallb-system
+----
+
+.Sample Output
+----
+NAME                                                   READY   STATUS    RESTARTS   AGE
+controller-5569b49c6c-9sxgk                            2/2     Running   0          52m
+metallb-operator-controller-manager-68b9b6478c-mhzdk   1/1     Running   0          54m
+metallb-operator-webhook-server-77865bcffc-b55dq       1/1     Running   0          54m
+speaker-g969f                                          6/6     Running   0          52m
+speaker-p9fxh                                          6/6     Running   0          52m
+speaker-r9xsv                                          6/6     Running   0          52m
+----
+
+=== Cert-Manager Operator
+
+With cert-manager, a Kubernetes add-on automates the management and issuance of TLS certificates within Kubernetes clusters. It simplifies the process of obtaining, renewing, and using SSL/TLS certificates from various certificate authorities (CAs), including public ones like Let's Encrypt, as well as private CAs. cert-manager enables users to ensure their applications are securely served over HTTPS without manually managing certificate lifecycles. We use cert-manager in RHOSO to issue and manage the SSL/TLS certicates to enable SSL/TLS on the OpenStack endpoints, called TLS everywhere (TLS-e)
+
+Verify that cert-manager pods are up and running by entering the following command:
+
+[source,bash,role=execute]
+----
+oc get pods -n cert-manager
+----
+
+.Sample Output
+----
+NAME                                       READY   STATUS    RESTARTS   AGE
+cert-manager-85dfdd4f8b-g9jrh              1/1     Running   0          54m
+cert-manager-cainjector-56b774cdf8-nr97k   1/1     Running   0          55m
+cert-manager-webhook-8f694d645-9586v       1/1     Running   0          55m
+----
