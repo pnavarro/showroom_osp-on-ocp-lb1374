@@ -33,7 +33,7 @@ Disable the edpm-compute-0 so that this compute node can't be scheduled:
 
 [source,bash,role=execute]
 ----
-oc rsh openstackclient openstack compute service set edpm-compute-1.ctlplane.aio.example.com nova-compute --disable
+oc rsh openstackclient openstack compute service set edpm-compute-0.ctlplane.aio.example.com nova-compute --disable
 ----
 
 == Stop ovn and nova-compute containers
