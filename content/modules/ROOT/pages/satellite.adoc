@@ -307,7 +307,7 @@ do
 done
 ----
 
-WARNING: Wait 15-20 min until the repository synchronization tasks are finished before moving to the content view creation. You can also access to the GUI using the Troubleshooting section at the end of this page. Go to Content -> Sync status and check that all the repos are sync. Click Synchronize now to force synchronization. 
+WARNING: Wait until the repository synchronization tasks are finished before moving to the content view creation. You can also access to the GUI using the Troubleshooting section at the end of this page. Go to Content -> Sync status and check that all the repos are sync. Click Synchronize now to force synchronization. 
 
 Create content view:
 [source,bash,role=execute]
